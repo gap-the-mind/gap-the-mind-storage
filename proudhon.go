@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"gitlab.com/ekai/proudhon/gap-the-mind-storage/repo"
+)
 
 func main() {
-	fmt.Println("Hello, world.")
+	repo.Open("./storage/repo")
 }
