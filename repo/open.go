@@ -2,14 +2,12 @@ package repo
 
 import (
 	"github.com/go-git/go-git/v5"
-	"go.uber.org/zap"
+	"gitlab.com/ekai/proudhon/gap-the-mind-storage/log"
 )
 
 // Open a new repo
 func Open(path string) (*git.Repository, error) {
-	l, _ := zap.NewDevelopment()
-	logger := l.Sugar()
-
+	logger := log.CreateLogger()
 	defer logger.Sync()
 
 	repo, err := git.PlainOpen(path)
