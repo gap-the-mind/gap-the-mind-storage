@@ -1,0 +1,12 @@
+POST http://localhost:8080/graphql
+Content-Type: application/json
+X-REQUEST-TYPE: GraphQL
+
+query GreetPerson($person: String!) {
+    greetPerson(person: $person)
+}
+
+{
+    "person":"tptp"
+}
+    

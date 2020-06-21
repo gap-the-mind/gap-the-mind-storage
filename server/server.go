@@ -44,7 +44,7 @@ func StartServer(repo *git.Repository) {
 		"port",
 		port)
 
-	http.Handle("/query", &relay.Handler{Schema: schema})
+	http.Handle("/graphql", &relay.Handler{Schema: schema})
 
 	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
 
