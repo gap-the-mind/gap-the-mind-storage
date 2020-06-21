@@ -1,0 +1,15 @@
+schema {
+  query: Query
+}
+
+type Query {
+  greet: String!
+  greetPerson(person: String!): String!
+  greetPersonTimeOfDay(person: String!, timeOfDay: TimeOfDay!): String!
+}
+
+enum TimeOfDay {
+  MORNING
+  AFTERNOON
+  EVENING
+}

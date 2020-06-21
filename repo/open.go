@@ -5,9 +5,10 @@ import (
 	"gitlab.com/ekai/proudhon/gap-the-mind-storage/log"
 )
 
+var logger = log.CreateLogger()
+
 // Open a new repo
 func Open(path string) (*git.Repository, error) {
-	logger := log.CreateLogger()
 	defer logger.Sync()
 
 	repo, err := git.PlainOpen(path)
