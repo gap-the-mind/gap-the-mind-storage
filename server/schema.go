@@ -1,31 +1,31 @@
 package server
 
 import (
-	"context"
-	"time"
+	"fmt"
 
 	"github.com/samsarahq/thunder/graphql"
+	"github.com/samsarahq/thunder/graphql/introspection"
 	"github.com/samsarahq/thunder/graphql/schemabuilder"
-	"github.com/samsarahq/thunder/reactive"
 )
 
-type post struct {
-	Title     string
-	Body      string
-	CreatedAt time.Time
+type note struct {
+	Title string
+	Text  string
 }
 
 // server is our graphql server.
 type server struct {
-	posts []post
 }
 
 // registerQuery registers the root query type.
 func (s *server) registerQuery(schema *schemabuilder.Schema) {
-	obj := schema.Query()
+	query := schema.Query()
 
-	obj.FieldFunc("posts", func() []post {
-		return s.posts
+	query.FieldFunc("notes", func() []note {
+		return []note{
+			{Title: "first post!", Text: "I was here first!"},
+			{Title: "graphql", Text: "did you hear about Thunder?"},
+		}
 	})
 }
 
@@ -38,19 +38,27 @@ func (s *server) registerMutation(schema *schemabuilder.Schema) {
 }
 
 // registerPost registers the post type.
-func (s *server) registerPost(schema *schemabuilder.Schema) {
-	obj := schema.Object("Post", post{})
-	obj.FieldFunc("age", func(ctx context.Context, p *post) string {
-		reactive.InvalidateAfter(ctx, 5*time.Second)
-		return time.Since(p.CreatedAt).String()
-	})
-}
+// func (s *server) registerPost(schema *schemabuilder.Schema) {
+// 	obj := schema.Object("Post", post{})
+// 	obj.FieldFunc("age", func(ctx context.Context, p *post) string {
+// 		reactive.InvalidateAfter(ctx, 5*time.Second)
+// 		return time.Since(p.CreatedAt).String()
+// 	})
+// }
 
 // schema builds the graphql schema.
 func (s *server) schema() *graphql.Schema {
 	builder := schemabuilder.NewSchema()
 	s.registerQuery(builder)
 	s.registerMutation(builder)
-	s.registerPost(builder)
+	// s.registerPost(builder)
+
+	valueJSON, err := introspection.ComputeSchemaJSON(*builder)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Print(string(valueJSON))
+
 	return builder.MustBuild()
 }

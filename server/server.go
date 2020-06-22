@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/samsarahq/thunder/graphql"
@@ -17,12 +16,7 @@ var logger = log.CreateLogger()
 func StartServer(repo *git.Repository) {
 	defer logger.Sync()
 
-	server := &server{
-		posts: []post{
-			{Title: "first post!", Body: "I was here first!", CreatedAt: time.Now()},
-			{Title: "graphql", Body: "did you hear about Thunder?", CreatedAt: time.Now()},
-		},
-	}
+	server := &server{}
 
 	schema := server.schema()
 	introspection.AddIntrospectionToSchema(schema)
@@ -30,6 +24,7 @@ func StartServer(repo *git.Repository) {
 	// Expose schema and graphiql.
 	http.Handle("/graphql", graphql.Handler(schema))
 	http.Handle("/graphiql/", http.StripPrefix("/graphiql/", graphiql.Handler()))
+
 	http.ListenAndServe(":3030", nil)
 
 }

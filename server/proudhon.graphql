@@ -8,6 +8,11 @@ type Query {
   greetPersonTimeOfDay(person: String!, timeOfDay: TimeOfDay!): String!
 }
 
+interface Node {
+  # The ID of the object.
+  id: ID!
+}
+
 enum TimeOfDay {
   MORNING
   AFTERNOON
