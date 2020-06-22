@@ -2,40 +2,55 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"time"
+
+	"github.com/samsarahq/thunder/graphql"
+	"github.com/samsarahq/thunder/graphql/schemabuilder"
+	"github.com/samsarahq/thunder/reactive"
 )
 
-// RootResolver is the root resolver
-type RootResolver struct{}
-
-// Greet greets
-func (*RootResolver) Greet() string {
-	return "Hello, world!"
+type post struct {
+	Title     string
+	Body      string
+	CreatedAt time.Time
 }
 
-// GreetPerson greets prerson
-func (*RootResolver) GreetPerson(args struct{ Person string }) string {
-	return fmt.Sprintf("Hello, %s!", args.Person)
+// server is our graphql server.
+type server struct {
+	posts []post
 }
 
-// GreetPersonTimeOfDay greets person time of day
-func (*RootResolver) GreetPersonTimeOfDay(ctx context.Context, args PersonTimeOfDayArgs) string {
-	timeOfDay, ok := TimesOfDay[args.TimeOfDay]
-	if !ok {
-		timeOfDay = "Go to bed"
-	}
-	return fmt.Sprintf("%s, %s!", timeOfDay, args.Person)
+// registerQuery registers the root query type.
+func (s *server) registerQuery(schema *schemabuilder.Schema) {
+	obj := schema.Query()
+
+	obj.FieldFunc("posts", func() []post {
+		return s.posts
+	})
 }
 
-// PersonTimeOfDayArgs is a structure
-type PersonTimeOfDayArgs struct {
-	Person    string // Note that fields need to be exported.
-	TimeOfDay string
+// registerMutation registers the root mutation type.
+func (s *server) registerMutation(schema *schemabuilder.Schema) {
+	obj := schema.Mutation()
+	obj.FieldFunc("echo", func(args struct{ Message string }) string {
+		return args.Message
+	})
 }
 
-// TimesOfDay is a struct
-var TimesOfDay = map[string]string{
-	"MORNING":   "Good morning",
-	"AFTERNOON": "Good afternoon",
-	"EVENING":   "Good evening",
+// registerPost registers the post type.
+func (s *server) registerPost(schema *schemabuilder.Schema) {
+	obj := schema.Object("Post", post{})
+	obj.FieldFunc("age", func(ctx context.Context, p *post) string {
+		reactive.InvalidateAfter(ctx, 5*time.Second)
+		return time.Since(p.CreatedAt).String()
+	})
+}
+
+// schema builds the graphql schema.
+func (s *server) schema() *graphql.Schema {
+	builder := schemabuilder.NewSchema()
+	s.registerQuery(builder)
+	s.registerMutation(builder)
+	s.registerPost(builder)
+	return builder.MustBuild()
 }
