@@ -1,0 +1,52 @@
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type Note implements Node {
+  id: ID!
+  title: String!
+  text: String!
+}
+
+type User implements Node {
+  id: ID!
+  name: String!
+
+  notesConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): UserNotesConnection
+}
+
+type UserNotesConnection {
+  edges: [UserNodeEdge]
+  pageInfo: PageInfo!
+  totalCount: Int
+}
+
+type UserNodeEdge {
+  cursor: String!
+  node: Note
+}
+
+type Query {
+  user: User
+}
+
+#input NewTodo {
+#  text: String!
+#  userId: String!
+#}
+#
+#type Mutation {
+#  createNote(input: NewTodo!): Todo!
+#}
