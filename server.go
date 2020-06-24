@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/99designs/gqlgen/example/starwars/generated"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph"
+	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 )
 
 const defaultPort = "8080"
