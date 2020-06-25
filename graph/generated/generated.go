@@ -56,7 +56,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		User func(childComplexity int) int
+		CurrentUser func(childComplexity int) int
 	}
 
 	User struct {
@@ -78,7 +78,7 @@ type ComplexityRoot struct {
 }
 
 type QueryResolver interface {
-	User(ctx context.Context) (*model.User, error)
+	CurrentUser(ctx context.Context) (*model.User, error)
 }
 
 type executableSchema struct {
@@ -145,12 +145,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
-	case "Query.user":
-		if e.complexity.Query.User == nil {
+	case "Query.currentUser":
+		if e.complexity.Query.CurrentUser == nil {
 			break
 		}
 
-		return e.complexity.Query.User(childComplexity), true
+		return e.complexity.Query.CurrentUser(childComplexity), true
 
 	case "User.id":
 		if e.complexity.User.ID == nil {
@@ -304,7 +304,7 @@ type UserNoteEdge {
 }
 
 type Query {
-  user: User
+  currentUser: User
 }
 
 #input NewTodo {
@@ -643,7 +643,7 @@ func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graph
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_currentUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -660,7 +660,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx)
+		return ec.resolvers.Query().CurrentUser(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2190,7 +2190,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
-		case "user":
+		case "currentUser":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2198,7 +2198,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_user(ctx, field)
+				res = ec._Query_currentUser(ctx, field)
 				return res
 			})
 		case "__type":

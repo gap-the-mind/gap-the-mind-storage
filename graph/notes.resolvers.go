@@ -10,8 +10,8 @@ import (
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
 )
 
-func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
-	return &model.User{Name: "Toto"}, nil
+func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
+	return &r.user, nil
 }
 
 // Query returns generated.QueryResolver implementation.

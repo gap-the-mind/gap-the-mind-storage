@@ -39,7 +39,7 @@ type UserNoteEdge {
 }
 
 type Query {
-  user: User
+  currentUser: User
 }
 
 #input NewTodo {
