@@ -13,7 +13,8 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	user model.User
+	user  model.User
+	notes []model.Note
 }
 
 func NewResolver() generated.Config {
@@ -22,6 +23,14 @@ func NewResolver() generated.Config {
 	r.user = model.User{
 		ID:   "me",
 		Name: "Matthieu",
+	}
+
+	r.notes = []model.Note{
+		model.Note{
+			ID:    "note_1",
+			Title: "First note",
+			Text:  "This is the first note",
+		},
 	}
 
 	return generated.Config{

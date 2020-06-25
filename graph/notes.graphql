@@ -13,7 +13,6 @@ type Note implements Node {
   id: ID!
   title: String!
   text: String!
-  tags: [Tag!]
 }
 
 type User implements Node {
@@ -26,13 +25,6 @@ type User implements Node {
     last: Int
     before: String
   ): UserNotesConnection!
-
-  tagsConnection(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): UserTagsConnection!
 }
 
 type UserNotesConnection {
@@ -44,22 +36,6 @@ type UserNotesConnection {
 type UserNoteEdge {
   cursor: ID!
   node: Note
-}
-
-type UserTagsConnection {
-  edges: [UserTagEdge!]
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type UserTagEdge {
-  cursor: ID!
-  node: Tag
-}
-
-type Tag implements Node {
-  id: ID!
-  label: String!
 }
 
 type Query {
