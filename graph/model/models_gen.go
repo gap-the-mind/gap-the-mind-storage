@@ -10,6 +10,7 @@ type Note struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
 	Text  string `json:"text"`
+	Tags  []*Tag `json:"tags"`
 }
 
 func (Note) IsNode() {}
@@ -21,10 +22,18 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor"`
 }
 
+type Tag struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+}
+
+func (Tag) IsNode() {}
+
 type User struct {
 	ID              string               `json:"id"`
 	Name            string               `json:"name"`
 	NotesConnection *UserNotesConnection `json:"notesConnection"`
+	TagsConnection  *UserTagsConnection  `json:"tagsConnection"`
 }
 
 func (User) IsNode() {}
@@ -38,4 +47,15 @@ type UserNotesConnection struct {
 	Edges      []*UserNoteEdge `json:"edges"`
 	PageInfo   *PageInfo       `json:"pageInfo"`
 	TotalCount int             `json:"totalCount"`
+}
+
+type UserTagEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *Tag   `json:"node"`
+}
+
+type UserTagsConnection struct {
+	Edges      []*UserTagEdge `json:"edges"`
+	PageInfo   *PageInfo      `json:"pageInfo"`
+	TotalCount int            `json:"totalCount"`
 }
