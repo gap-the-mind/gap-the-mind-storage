@@ -5,14 +5,13 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
 )
 
 func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &model.User{Name: "Toto"}, nil
 }
 
 // Query returns generated.QueryResolver implementation.

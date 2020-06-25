@@ -29,13 +29,13 @@ type User struct {
 
 func (User) IsNode() {}
 
-type UserNodeEdge struct {
+type UserNoteEdge struct {
 	Cursor string `json:"cursor"`
 	Node   *Note  `json:"node"`
 }
 
 type UserNotesConnection struct {
-	Edges      []*UserNodeEdge `json:"edges"`
+	Edges      []*UserNoteEdge `json:"edges"`
 	PageInfo   *PageInfo       `json:"pageInfo"`
-	TotalCount *int            `json:"totalCount"`
+	TotalCount int             `json:"totalCount"`
 }

@@ -24,17 +24,17 @@ type User implements Node {
     after: String
     last: Int
     before: String
-  ): UserNotesConnection
+  ): UserNotesConnection!
 }
 
 type UserNotesConnection {
-  edges: [UserNodeEdge]
+  edges: [UserNoteEdge!]
   pageInfo: PageInfo!
-  totalCount: Int
+  totalCount: Int!
 }
 
-type UserNodeEdge {
-  cursor: String!
+type UserNoteEdge {
+  cursor: ID!
   node: Note
 }
 

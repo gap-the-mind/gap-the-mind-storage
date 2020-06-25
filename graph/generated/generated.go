@@ -65,7 +65,7 @@ type ComplexityRoot struct {
 		NotesConnection func(childComplexity int, first *int, after *string, last *int, before *string) int
 	}
 
-	UserNodeEdge struct {
+	UserNoteEdge struct {
 		Cursor func(childComplexity int) int
 		Node   func(childComplexity int) int
 	}
@@ -178,19 +178,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.NotesConnection(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
 
-	case "UserNodeEdge.cursor":
-		if e.complexity.UserNodeEdge.Cursor == nil {
+	case "UserNoteEdge.cursor":
+		if e.complexity.UserNoteEdge.Cursor == nil {
 			break
 		}
 
-		return e.complexity.UserNodeEdge.Cursor(childComplexity), true
+		return e.complexity.UserNoteEdge.Cursor(childComplexity), true
 
-	case "UserNodeEdge.node":
-		if e.complexity.UserNodeEdge.Node == nil {
+	case "UserNoteEdge.node":
+		if e.complexity.UserNoteEdge.Node == nil {
 			break
 		}
 
-		return e.complexity.UserNodeEdge.Node(childComplexity), true
+		return e.complexity.UserNoteEdge.Node(childComplexity), true
 
 	case "UserNotesConnection.edges":
 		if e.complexity.UserNotesConnection.Edges == nil {
@@ -263,7 +263,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/notes.graphqls", Input: `interface Node {
+	&ast.Source{Name: "graph/notes.graphql", Input: `interface Node {
   id: ID!
 }
 
@@ -289,17 +289,17 @@ type User implements Node {
     after: String
     last: Int
     before: String
-  ): UserNotesConnection
+  ): UserNotesConnection!
 }
 
 type UserNotesConnection {
-  edges: [UserNodeEdge]
+  edges: [UserNoteEdge!]
   pageInfo: PageInfo!
-  totalCount: Int
+  totalCount: Int!
 }
 
-type UserNodeEdge {
-  cursor: String!
+type UserNoteEdge {
+  cursor: ID!
   node: Note
 }
 
@@ -842,14 +842,17 @@ func (ec *executionContext) _User_notesConnection(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.UserNotesConnection)
 	fc.Result = res
-	return ec.marshalOUserNotesConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx, field.Selections, res)
+	return ec.marshalNUserNotesConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _UserNodeEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.UserNodeEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserNoteEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.UserNoteEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -857,7 +860,7 @@ func (ec *executionContext) _UserNodeEdge_cursor(ctx context.Context, field grap
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "UserNodeEdge",
+		Object:   "UserNoteEdge",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -880,10 +883,10 @@ func (ec *executionContext) _UserNodeEdge_cursor(ctx context.Context, field grap
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _UserNodeEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.UserNodeEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserNoteEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.UserNoteEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -891,7 +894,7 @@ func (ec *executionContext) _UserNodeEdge_node(ctx context.Context, field graphq
 		}
 	}()
 	fc := &graphql.FieldContext{
-		Object:   "UserNodeEdge",
+		Object:   "UserNoteEdge",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -940,9 +943,9 @@ func (ec *executionContext) _UserNotesConnection_edges(ctx context.Context, fiel
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*model.UserNodeEdge)
+	res := resTmp.([]*model.UserNoteEdge)
 	fc.Result = res
-	return ec.marshalOUserNodeEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNodeEdge(ctx, field.Selections, res)
+	return ec.marshalOUserNoteEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserNotesConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.UserNotesConnection) (ret graphql.Marshaler) {
@@ -1003,11 +1006,14 @@ func (ec *executionContext) _UserNotesConnection_totalCount(ctx context.Context,
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*int)
+	res := resTmp.(int)
 	fc.Result = res
-	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2233,6 +2239,9 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "notesConnection":
 			out.Values[i] = ec._User_notesConnection(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2244,24 +2253,24 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
-var userNodeEdgeImplementors = []string{"UserNodeEdge"}
+var userNoteEdgeImplementors = []string{"UserNoteEdge"}
 
-func (ec *executionContext) _UserNodeEdge(ctx context.Context, sel ast.SelectionSet, obj *model.UserNodeEdge) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, userNodeEdgeImplementors)
+func (ec *executionContext) _UserNoteEdge(ctx context.Context, sel ast.SelectionSet, obj *model.UserNoteEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userNoteEdgeImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("UserNodeEdge")
+			out.Values[i] = graphql.MarshalString("UserNoteEdge")
 		case "cursor":
-			out.Values[i] = ec._UserNodeEdge_cursor(ctx, field, obj)
+			out.Values[i] = ec._UserNoteEdge_cursor(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
 		case "node":
-			out.Values[i] = ec._UserNodeEdge_node(ctx, field, obj)
+			out.Values[i] = ec._UserNoteEdge_node(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2293,6 +2302,9 @@ func (ec *executionContext) _UserNotesConnection(ctx context.Context, sel ast.Se
 			}
 		case "totalCount":
 			out.Values[i] = ec._UserNotesConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2577,6 +2589,20 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
+	return graphql.UnmarshalInt(v)
+}
+
+func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
+	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
 }
@@ -2603,6 +2629,34 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNUserNoteEdge2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdge(ctx context.Context, sel ast.SelectionSet, v model.UserNoteEdge) graphql.Marshaler {
+	return ec._UserNoteEdge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserNoteEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdge(ctx context.Context, sel ast.SelectionSet, v *model.UserNoteEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserNoteEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserNotesConnection2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx context.Context, sel ast.SelectionSet, v model.UserNotesConnection) graphql.Marshaler {
+	return ec._UserNotesConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserNotesConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx context.Context, sel ast.SelectionSet, v *model.UserNotesConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserNotesConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -2922,11 +2976,7 @@ func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋga
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUserNodeEdge2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNodeEdge(ctx context.Context, sel ast.SelectionSet, v model.UserNodeEdge) graphql.Marshaler {
-	return ec._UserNodeEdge(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOUserNodeEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNodeEdge(ctx context.Context, sel ast.SelectionSet, v []*model.UserNodeEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOUserNoteEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserNoteEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -2953,7 +3003,7 @@ func (ec *executionContext) marshalOUserNodeEdge2ᚕᚖgithubᚗcomᚋgapᚑthe�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOUserNodeEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNodeEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNUserNoteEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -2964,24 +3014,6 @@ func (ec *executionContext) marshalOUserNodeEdge2ᚕᚖgithubᚗcomᚋgapᚑthe�
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) marshalOUserNodeEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNodeEdge(ctx context.Context, sel ast.SelectionSet, v *model.UserNodeEdge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._UserNodeEdge(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOUserNotesConnection2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx context.Context, sel ast.SelectionSet, v model.UserNotesConnection) graphql.Marshaler {
-	return ec._UserNotesConnection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOUserNotesConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx context.Context, sel ast.SelectionSet, v *model.UserNotesConnection) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._UserNotesConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
