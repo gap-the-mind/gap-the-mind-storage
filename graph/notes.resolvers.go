@@ -6,14 +6,12 @@ package graph
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
-	"github.com/gap-the-mind/gap-the-mind-storage/log"
 	"github.com/google/uuid"
 )
-
-var logger = log.CreateLogger()
 
 func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*model.Note, error) {
 	id := uuid.New().String()
@@ -26,6 +24,25 @@ func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*mode
 	r.notes[id] = note
 
 	return &note, nil
+}
+
+func (r *mutationResolver) EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error) {
+	if note, found := r.notes[id]; found {
+		if edition.Title != nil {
+			note.Title = *edition.Title
+		}
+
+		if edition.Text != nil {
+			note.Text = *edition.Text
+		}
+
+		r.notes[id] = note
+
+		return &note, nil
+	}
+
+	return nil, fmt.Errorf("No note with ID %s", id)
+
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {

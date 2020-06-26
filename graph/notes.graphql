@@ -44,6 +44,12 @@ type Query {
   currentUser: User
 }
 
+input EditNoteInput {
+  title: String
+  text: String
+}
+
 type Mutation {
   createNote(title: String): Note
+  editNote(id: ID!, edition: EditNoteInput!): Note
 }

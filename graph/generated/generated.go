@@ -47,6 +47,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreateNote func(childComplexity int, title *string) int
+		EditNote   func(childComplexity int, id string, edition model.EditNoteInput) int
 	}
 
 	Note struct {
@@ -87,6 +88,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateNote(ctx context.Context, title *string) (*model.Note, error)
+	EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error)
 }
 type QueryResolver interface {
 	CurrentUser(ctx context.Context) (*model.User, error)
@@ -122,6 +124,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateNote(childComplexity, args["title"].(*string)), true
+
+	case "Mutation.editNote":
+		if e.complexity.Mutation.EditNote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_editNote_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EditNote(childComplexity, args["id"].(string), args["edition"].(model.EditNoteInput)), true
 
 	case "Note.id":
 		if e.complexity.Note.ID == nil {
@@ -362,8 +376,14 @@ type Query {
   currentUser: User
 }
 
+input EditNoteInput {
+  title: String
+  text: String
+}
+
 type Mutation {
   createNote(title: String): Note
+  editNote(id: ID!, edition: EditNoteInput!): Note
 }
 `, BuiltIn: false},
 }
@@ -384,6 +404,28 @@ func (ec *executionContext) field_Mutation_createNote_args(ctx context.Context, 
 		}
 	}
 	args["title"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_editNote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.EditNoteInput
+	if tmp, ok := rawArgs["edition"]; ok {
+		arg1, err = ec.unmarshalNEditNoteInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐEditNoteInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["edition"] = arg1
 	return args, nil
 }
 
@@ -514,6 +556,44 @@ func (ec *executionContext) _Mutation_createNote(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateNote(rctx, args["title"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Note)
+	fc.Result = res
+	return ec.marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_editNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_editNote_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EditNote(rctx, args["id"].(string), args["edition"].(model.EditNoteInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2225,6 +2305,30 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputEditNoteInput(ctx context.Context, obj interface{}) (model.EditNoteInput, error) {
+	var it model.EditNoteInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "title":
+			var err error
+			it.Title, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "text":
+			var err error
+			it.Text, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2273,6 +2377,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createNote":
 			out.Values[i] = ec._Mutation_createNote(ctx, field)
+		case "editNote":
+			out.Values[i] = ec._Mutation_editNote(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2775,6 +2881,10 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNEditNoteInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐEditNoteInput(ctx context.Context, v interface{}) (model.EditNoteInput, error) {
+	return ec.unmarshalInputEditNoteInput(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
