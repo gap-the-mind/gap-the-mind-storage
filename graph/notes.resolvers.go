@@ -32,7 +32,7 @@ func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, fir
 			HasNextPage:     false,
 			HasPreviousPage: false,
 			StartCursor:     &edges[0].Cursor,
-			EndCursor:       &edges[len(edges)].Cursor,
+			EndCursor:       &edges[len(edges)-1].Cursor,
 		},
 	}, nil
 }
