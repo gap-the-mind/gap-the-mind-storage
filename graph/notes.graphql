@@ -19,6 +19,8 @@ type User implements Node {
   id: ID!
   name: String!
 
+  node(id: ID!): Node
+
   notesConnection(
     first: Int
     after: String
@@ -40,4 +42,8 @@ type UserNoteEdge {
 
 type Query {
   currentUser: User
+}
+
+type Mutation {
+  createNote(title: String): Note
 }

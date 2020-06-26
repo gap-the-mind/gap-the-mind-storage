@@ -9,20 +9,51 @@ import (
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
+	"github.com/gap-the-mind/gap-the-mind-storage/log"
+	"github.com/google/uuid"
 )
+
+var logger = log.CreateLogger()
+
+func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*model.Note, error) {
+	id := uuid.New().String()
+
+	note := model.Note{
+		ID:    id,
+		Title: *title,
+	}
+
+	r.notes[id] = note
+
+	return &note, nil
+}
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 	return &r.user, nil
 }
 
+func (r *userResolver) Node(ctx context.Context, obj *model.User, id string) (model.Node, error) {
+	if note, found := r.notes[id]; found {
+		return note, nil
+	}
+
+	return nil, nil
+}
+
 func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserNotesConnection, error) {
 	edges := make([]*model.UserNoteEdge, len(r.notes))
 
-	for i, note := range r.notes {
+	i := 0
+
+	for id, note := range r.notes {
+		noteCopy := note
+
 		edges[i] = &model.UserNoteEdge{
-			Cursor: base64.StdEncoding.EncodeToString([]byte(note.ID)),
-			Node:   &note,
+			Cursor: base64.StdEncoding.EncodeToString([]byte(id)),
+			Node:   &noteCopy,
 		}
+
+		i++
 	}
 
 	return &model.UserNotesConnection{
@@ -37,11 +68,15 @@ func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, fir
 	}, nil
 }
 
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

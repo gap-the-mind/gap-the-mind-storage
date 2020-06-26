@@ -14,7 +14,7 @@ import (
 
 type Resolver struct {
 	user  model.User
-	notes []model.Note
+	notes map[string]model.Note
 }
 
 func NewResolver() generated.Config {
@@ -25,8 +25,8 @@ func NewResolver() generated.Config {
 		Name: "Matthieu",
 	}
 
-	r.notes = []model.Note{
-		model.Note{
+	r.notes = map[string]model.Note{
+		"note_1": {
 			ID:    "note_1",
 			Title: "First note",
 			Text:  "This is the first note",
