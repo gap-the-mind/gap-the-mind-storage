@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const NOTE_TYPE = "note"
+
 func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*model.Note, error) {
 	id := uuid.New().String()
 
@@ -21,25 +23,25 @@ func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*mode
 		Title: *title,
 	}
 
-	r.notes[id] = note
+	err := r.storage.Create(NOTE_TYPE, id, note)
 
-	return &note, nil
+	return &note, err
 }
 
 func (r *mutationResolver) EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error) {
-	if note, found := r.notes[id]; found {
-		if edition.Title != nil {
-			note.Title = *edition.Title
-		}
+	// if note, found := r.notes[id]; found {
+	// 	if edition.Title != nil {
+	// 		note.Title = *edition.Title
+	// 	}
 
-		if edition.Text != nil {
-			note.Text = *edition.Text
-		}
+	// 	if edition.Text != nil {
+	// 		note.Text = *edition.Text
+	// 	}
 
-		r.notes[id] = note
+	// 	r.notes[id] = note
 
-		return &note, nil
-	}
+	// 	return &note, nil
+	// }
 
 	return nil, fmt.Errorf("No note with ID %s", id)
 
@@ -50,27 +52,31 @@ func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 }
 
 func (r *userResolver) Node(ctx context.Context, obj *model.User, id string) (model.Node, error) {
-	if note, found := r.notes[id]; found {
-		return note, nil
-	}
+	// if note, found := r.notes[id]; found {
+	// 	return note, nil
+	// }
 
 	return nil, nil
 }
 
 func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserNotesConnection, error) {
-	edges := make([]*model.UserNoteEdge, len(r.notes))
+	ids, err := r.storage.List(NOTE_TYPE)
 
-	i := 0
+	if err != nil {
+		return nil, err
+	}
 
-	for id, note := range r.notes {
-		noteCopy := note
+	edges := make([]*model.UserNoteEdge, len(ids))
+
+	for i, id := range ids {
+		note := model.Note{}
+
+		r.storage.Get(NOTE_TYPE, id, note)
 
 		edges[i] = &model.UserNoteEdge{
 			Cursor: base64.StdEncoding.EncodeToString([]byte(id)),
-			Node:   &noteCopy,
+			Node:   &note,
 		}
-
-		i++
 	}
 
 	return &model.UserNotesConnection{

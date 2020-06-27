@@ -7,8 +7,13 @@ import (
 
 var logger = log.CreateLogger()
 
+// Storage provide CRUD ops
+type Storage struct {
+	repo *git.Repository
+}
+
 // Open a new repo
-func Open(path string) (*git.Repository, error) {
+func Open(path string) (Storage, error) {
 	defer logger.Sync()
 
 	repo, err := git.PlainOpen(path)
@@ -34,5 +39,5 @@ func Open(path string) (*git.Repository, error) {
 		path,
 	)
 
-	return repo, nil
+	return Storage{repo: repo}, nil
 }

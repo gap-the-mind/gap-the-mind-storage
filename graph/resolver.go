@@ -6,6 +6,7 @@ package graph
 import (
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
+	"github.com/gap-the-mind/gap-the-mind-storage/repo"
 )
 
 // This file will not be regenerated automatically.
@@ -13,11 +14,11 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	user  model.User
-	notes map[string]model.Note
+	user    model.User
+	storage repo.Storage
 }
 
-func NewResolver() generated.Config {
+func NewResolver() (generated.Config, error) {
 	r := Resolver{}
 
 	r.user = model.User{
@@ -25,15 +26,15 @@ func NewResolver() generated.Config {
 		Name: "Matthieu",
 	}
 
-	r.notes = map[string]model.Note{
-		"note_1": {
-			ID:    "note_1",
-			Title: "First note",
-			Text:  "This is the first note",
-		},
+	storage, err := repo.Open("../storage")
+
+	if err != nil {
+		return generated.Config{}, err
 	}
+
+	r.storage = storage
 
 	return generated.Config{
 		Resolvers: &r,
-	}
+	}, nil
 }
