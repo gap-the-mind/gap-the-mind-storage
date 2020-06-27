@@ -1,8 +1,8 @@
 package repo
 
 import (
+	"github.com/gap-the-mind/gap-the-mind-storage/log"
 	"github.com/go-git/go-git/v5"
-	"gitlab.com/ekai/proudhon/gap-the-mind-storage/log"
 )
 
 var logger = log.CreateLogger()

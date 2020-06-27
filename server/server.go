@@ -1,55 +1,22 @@
 package server
 
 import (
-	"fmt"
-	"io/ioutil"
+	"log"
 	"net/http"
 
-	"github.com/go-git/go-git/v5"
-	graphql "github.com/graph-gophers/graphql-go"
-	"github.com/graph-gophers/graphql-go/relay"
-	"gitlab.com/ekai/proudhon/gap-the-mind-storage/log"
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/gap-the-mind/gap-the-mind-storage/graph"
+	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 )
 
-var logger = log.CreateLogger()
-
-func createSchema() *graphql.Schema {
-	// Read and parse the schema:
-	bstr, err := ioutil.ReadFile("server/proudhon.graphql")
-
-	if err != nil {
-		logger.Panicw("Failed to read schema", "error", err)
-	}
-
-	schemaString := string(bstr)
-
-	schema, err := graphql.ParseSchema(schemaString, &RootResolver{})
-
-	if err != nil {
-		logger.Panicw("Failed to parse schema", "error", err)
-	}
-
-	return schema
-}
-
 // StartServer starts the server
-func StartServer(repo *git.Repository) {
-	defer logger.Sync()
+func StartServer(port string) {
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(graph.NewResolver()))
 
-	schema := createSchema()
-	port := 8080
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", srv)
 
-	logger.Infow("Start server",
-		"schema", &graphql.Schema{},
-		"port",
-		port)
-
-	http.Handle("/graphql", &relay.Handler{Schema: schema})
-
-	err := http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
-
-	if err != nil {
-		logger.Fatalw("Failed to start server", "error", err)
-	}
-
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
