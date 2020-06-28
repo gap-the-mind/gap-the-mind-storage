@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
@@ -27,21 +26,20 @@ func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*mode
 }
 
 func (r *mutationResolver) EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error) {
-	// if note, found := r.notes[id]; found {
-	// 	if edition.Title != nil {
-	// 		note.Title = *edition.Title
-	// 	}
+	note := model.Note{}
+	r.storage.Get(NOTE_TYPE, id, &note)
 
-	// 	if edition.Text != nil {
-	// 		note.Text = *edition.Text
-	// 	}
+	if edition.Title != nil {
+		note.Title = *edition.Title
+	}
 
-	// 	r.notes[id] = note
+	if edition.Text != nil {
+		note.Text = *edition.Text
+	}
 
-	// 	return &note, nil
-	// }
+	r.storage.Update(NOTE_TYPE, id, note)
 
-	return nil, fmt.Errorf("No note with ID %s", id)
+	return &note, nil
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
@@ -49,11 +47,10 @@ func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 }
 
 func (r *userResolver) Node(ctx context.Context, obj *model.User, id string) (model.Node, error) {
-	// if note, found := r.notes[id]; found {
-	// 	return note, nil
-	// }
+	note := model.Note{}
+	err := r.storage.Get(NOTE_TYPE, id, &note)
 
-	return nil, nil
+	return note, err
 }
 
 func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserNotesConnection, error) {

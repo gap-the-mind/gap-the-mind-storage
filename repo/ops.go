@@ -94,7 +94,7 @@ func (s *Storage) Get(typ string, id string, target interface{}) error {
 	fs := tree.Filesystem
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Filesystem error: %w", err)
 	}
 
 	path := path(fs, typ, id)
@@ -102,29 +102,81 @@ func (s *Storage) Get(typ string, id string, target interface{}) error {
 	file, err := fs.Open(path)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to open file %s: %w", path, err)
 	}
 
 	b, err := ioutil.ReadAll(file)
 
 	if err != nil {
-		logger.Errorw("Failed to read file",
-			"id", id,
-			"path", path,
-			"error", err,
-		)
-		return err
+		return fmt.Errorf("Failed to read file %s: %w", path, err)
 	}
 
 	err = toml.Unmarshal(b, target)
 
 	if err != nil {
-		logger.Errorw("Failed to unmarshal",
-			"id", id,
-			"path", path,
-			"error", err,
-		)
-		return err
+		return fmt.Errorf("Failed to unmarshal %s from %s: %w", id, path, err)
+	}
+
+	return nil
+
+}
+
+func (s *Storage) Update(typ string, id string, content interface{}) error {
+	logger.Debugw("Update",
+		"type", typ,
+		"id", id,
+		"content", content,
+	)
+
+	tree, err := s.repo.Worktree()
+	fs := tree.Filesystem
+
+	if err != nil {
+		return fmt.Errorf("Filesystem error: %w", err)
+	}
+
+	b, err := toml.Marshal(content)
+
+	if err != nil {
+		return fmt.Errorf("Failed to marshal: %w", err)
+	}
+
+	path := path(fs, typ, id)
+
+	logger.Debugw("Saving",
+		"type", typ,
+		"id", id,
+		"path", path,
+		"content", b,
+	)
+
+	file, err := fs.Create(path)
+
+	if err != nil {
+		return fmt.Errorf("Failed to open file %s: %w", path, err)
+	}
+
+	_, err = file.Write(b)
+
+	if err != nil {
+		return fmt.Errorf("Failed to write file %s: %w", path, err)
+	}
+
+	_, err = tree.Add(path)
+
+	if err != nil {
+		return fmt.Errorf("Failed to add file %s: %w", path, err)
+	}
+
+	_, err = tree.Commit(fmt.Sprintf("Update note %s at %s", id, path), &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "John Doe",
+			Email: "john@doe.org",
+			When:  time.Now(),
+		}})
+
+	if err != nil {
+		return fmt.Errorf("Failed to commit: %w", err)
 	}
 
 	return nil
