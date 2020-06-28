@@ -13,8 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const NOTE_TYPE = "note"
-
 func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*model.Note, error) {
 	id := uuid.New().String()
 
@@ -44,7 +42,6 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 	// }
 
 	return nil, fmt.Errorf("No note with ID %s", id)
-
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {

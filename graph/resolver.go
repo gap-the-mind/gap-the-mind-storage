@@ -22,8 +22,9 @@ func NewResolver() (generated.Config, error) {
 	r := Resolver{}
 
 	r.user = model.User{
-		ID:   "me",
-		Name: "Matthieu",
+		ID:    "me",
+		Name:  "Matthieu",
+		Email: "matthieu.dartiguenave@gmail.com",
 	}
 
 	storage, err := repo.Open("../storage")

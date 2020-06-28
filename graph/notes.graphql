@@ -18,6 +18,7 @@ type Note implements Node {
 type User implements Node {
   id: ID!
   name: String!
+  email: String!
 
   node(id: ID!): Node
 
