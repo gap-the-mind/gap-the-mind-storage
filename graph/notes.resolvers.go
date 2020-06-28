@@ -71,7 +71,7 @@ func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, fir
 	for i, id := range ids {
 		note := model.Note{}
 
-		r.storage.Get(NOTE_TYPE, id, note)
+		r.storage.Get(NOTE_TYPE, id, &note)
 
 		edges[i] = &model.UserNoteEdge{
 			Cursor: base64.StdEncoding.EncodeToString([]byte(id)),

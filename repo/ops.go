@@ -91,20 +91,43 @@ func (s *Storage) Create(typ string, id string, content interface{}) error {
 
 func (s *Storage) Get(typ string, id string, target interface{}) error {
 	tree, err := s.repo.Worktree()
+	fs := tree.Filesystem
 
 	if err != nil {
 		return err
 	}
 
-	path := path(tree.Filesystem, typ, id)
+	path := path(fs, typ, id)
 
-	b, err := ioutil.ReadFile(path)
+	file, err := fs.Open(path)
 
 	if err != nil {
 		return err
 	}
 
-	return toml.Unmarshal(b, target)
+	b, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		logger.Errorw("Failed to read file",
+			"id", id,
+			"path", path,
+			"error", err,
+		)
+		return err
+	}
+
+	err = toml.Unmarshal(b, target)
+
+	if err != nil {
+		logger.Errorw("Failed to unmarshal",
+			"id", id,
+			"path", path,
+			"error", err,
+		)
+		return err
+	}
+
+	return nil
 
 }
 
