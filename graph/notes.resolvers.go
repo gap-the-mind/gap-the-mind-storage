@@ -42,6 +42,15 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 	return &note, nil
 }
 
+func (r *mutationResolver) DeleteNode(ctx context.Context, id string) (*model.Note, error) {
+	note := model.Note{}
+	err := r.storage.Get(NOTE_TYPE, id, &note)
+
+	r.storage.Delete(NOTE_TYPE, id)
+
+	return &note, err
+}
+
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
 	return &r.user, nil
 }

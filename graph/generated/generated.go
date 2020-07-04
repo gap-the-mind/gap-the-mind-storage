@@ -47,6 +47,7 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreateNote func(childComplexity int, title *string) int
+		DeleteNode func(childComplexity int, id string) int
 		EditNote   func(childComplexity int, id string, edition model.EditNoteInput) int
 	}
 
@@ -90,6 +91,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateNote(ctx context.Context, title *string) (*model.Note, error)
 	EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error)
+	DeleteNode(ctx context.Context, id string) (*model.Note, error)
 }
 type QueryResolver interface {
 	CurrentUser(ctx context.Context) (*model.User, error)
@@ -125,6 +127,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateNote(childComplexity, args["title"].(*string)), true
+
+	case "Mutation.deleteNode":
+		if e.complexity.Mutation.DeleteNode == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteNode_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteNode(childComplexity, args["id"].(string)), true
 
 	case "Mutation.editNote":
 		if e.complexity.Mutation.EditNote == nil {
@@ -393,6 +407,7 @@ input EditNoteInput {
 type Mutation {
   createNote(title: String): Note
   editNote(id: ID!, edition: EditNoteInput!): Note
+  deleteNode(id: ID!): Note
 }
 `, BuiltIn: false},
 }
@@ -413,6 +428,20 @@ func (ec *executionContext) field_Mutation_createNote_args(ctx context.Context, 
 		}
 	}
 	args["title"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteNode_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -603,6 +632,44 @@ func (ec *executionContext) _Mutation_editNote(ctx context.Context, field graphq
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().EditNote(rctx, args["id"].(string), args["edition"].(model.EditNoteInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Note)
+	fc.Result = res
+	return ec.marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteNode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteNode_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteNode(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2422,6 +2489,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createNote(ctx, field)
 		case "editNote":
 			out.Values[i] = ec._Mutation_editNote(ctx, field)
+		case "deleteNode":
+			out.Values[i] = ec._Mutation_deleteNode(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
