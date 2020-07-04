@@ -11,3 +11,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.0.1
 	go.uber.org/zap v1.15.0
 )
+
+replace github.com/go-git/go-billy/v5 => ../go-billy
+
+replace github.com/go-git/go-git/v5 => ../go-git
