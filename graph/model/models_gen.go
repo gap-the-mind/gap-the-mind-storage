@@ -7,14 +7,16 @@ type Node interface {
 }
 
 type EditNoteInput struct {
-	Title *string `json:"title"`
-	Text  *string `json:"text"`
+	Title *string     `json:"title"`
+	Text  *string     `json:"text"`
+	Tags  []*TagInput `json:"tags"`
 }
 
 type Note struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
 	Text  string `json:"text"`
+	Tags  []*Tag `json:"tags"`
 }
 
 func (Note) IsNode() {}
@@ -24,6 +26,16 @@ type PageInfo struct {
 	HasPreviousPage bool    `json:"hasPreviousPage"`
 	StartCursor     *string `json:"startCursor"`
 	EndCursor       *string `json:"endCursor"`
+}
+
+type Tag struct {
+	ID string `json:"id"`
+}
+
+func (Tag) IsNode() {}
+
+type TagInput struct {
+	ID string `json:"id"`
 }
 
 type User struct {
