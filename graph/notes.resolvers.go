@@ -26,6 +26,9 @@ func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*mode
 }
 
 func (r *mutationResolver) EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error) {
+	logger.Debugw("Edit Note",
+		"id", id, "edition", edition)
+
 	note := model.Note{}
 	r.storage.Get(NOTE_TYPE, id, &note)
 
@@ -37,9 +40,27 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 		note.Text = *edition.Text
 	}
 
+	if edition.Tags != nil {
+		note.Tags = make([]*model.Tag, len(edition.Tags))
+
+		for i, t := range edition.Tags {
+			note.Tags[i] = &model.Tag{ID: t.ID}
+		}
+
+	}
+
 	r.storage.Update(NOTE_TYPE, id, note)
 
 	return &note, nil
+}
+
+func (r *mutationResolver) DeleteNode(ctx context.Context, id string) (*model.Note, error) {
+	note := model.Note{}
+	err := r.storage.Get(NOTE_TYPE, id, &note)
+
+	r.storage.Delete(NOTE_TYPE, id)
+
+	return &note, err
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {

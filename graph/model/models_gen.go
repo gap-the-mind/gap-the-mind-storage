@@ -2,7 +2,59 @@
 
 package model
 
+type Node interface {
+	IsNode()
+}
+
 type EditNoteInput struct {
-	Title *string `json:"title"`
-	Text  *string `json:"text"`
+	Title *string     `json:"title"`
+	Text  *string     `json:"text"`
+	Tags  []*TagInput `json:"tags"`
+}
+
+type Note struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Text  string `json:"text"`
+	Tags  []*Tag `json:"tags"`
+}
+
+func (Note) IsNode() {}
+
+type PageInfo struct {
+	HasNextPage     bool    `json:"hasNextPage"`
+	HasPreviousPage bool    `json:"hasPreviousPage"`
+	StartCursor     *string `json:"startCursor"`
+	EndCursor       *string `json:"endCursor"`
+}
+
+type Tag struct {
+	ID string `json:"id"`
+}
+
+func (Tag) IsNode() {}
+
+type TagInput struct {
+	ID string `json:"id"`
+}
+
+type User struct {
+	ID              string               `json:"id"`
+	Name            string               `json:"name"`
+	Email           string               `json:"email"`
+	Node            Node                 `json:"node"`
+	NotesConnection *UserNotesConnection `json:"notesConnection"`
+}
+
+func (User) IsNode() {}
+
+type UserNoteEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *Note  `json:"node"`
+}
+
+type UserNotesConnection struct {
+	Edges      []*UserNoteEdge `json:"edges"`
+	PageInfo   *PageInfo       `json:"pageInfo"`
+	TotalCount int             `json:"totalCount"`
 }

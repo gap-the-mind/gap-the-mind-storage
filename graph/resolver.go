@@ -6,12 +6,11 @@ package graph
 import (
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
+	"github.com/gap-the-mind/gap-the-mind-storage/log"
 	"github.com/gap-the-mind/gap-the-mind-storage/repo"
 )
 
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require here.
+var logger = log.CreateLogger()
 
 type Resolver struct {
 	user    model.User

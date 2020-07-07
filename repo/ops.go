@@ -40,15 +40,62 @@ func path(fs billy.Filesystem, typ string, id string) string {
 	return path
 
 }
-
-func (s *Storage) Create(typ string, id string, content interface{}) error {
+func (s *Storage) fs() (billy.Filesystem, error) {
 	tree, err := s.repo.Worktree()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tree.Filesystem, nil
+}
+
+func (s *Storage) commit(path string, msg string) error {
+	tree, err := s.repo.Worktree()
+	_, err = tree.Add(path)
 
 	if err != nil {
 		return err
 	}
 
-	fs := tree.Filesystem
+	_, err = tree.Commit(msg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "John Doe",
+			Email: "john@doe.org",
+			When:  time.Now(),
+		}})
+
+	if err != nil {
+		return fmt.Errorf("Failed to commit: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) Delete(typ string, id string) error {
+	fs, err := s.fs()
+
+	if err != nil {
+		return err
+	}
+
+	path := path(fs, typ, id)
+
+	err = fs.Remove(path)
+
+	if err != nil {
+		return err
+	}
+
+	return s.commit(path, fmt.Sprintf("Delete note %s at %s", id, path))
+}
+
+func (s *Storage) Create(typ string, id string, content interface{}) error {
+	fs, err := s.fs()
+
+	if err != nil {
+		return err
+	}
 
 	b, err := toml.Marshal(content)
 
@@ -69,29 +116,11 @@ func (s *Storage) Create(typ string, id string, content interface{}) error {
 		return err
 	}
 
-	_, err = tree.Add(path)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = tree.Commit(fmt.Sprintf("Create note %s at %s", id, path), &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		}})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.commit(path, fmt.Sprintf("Create note %s at %s", id, path))
 }
 
 func (s *Storage) Get(typ string, id string, target interface{}) error {
-	tree, err := s.repo.Worktree()
-	fs := tree.Filesystem
+	fs, err := s.fs()
 
 	if err != nil {
 		return fmt.Errorf("Filesystem error: %w", err)
@@ -128,8 +157,7 @@ func (s *Storage) Update(typ string, id string, content interface{}) error {
 		"content", content,
 	)
 
-	tree, err := s.repo.Worktree()
-	fs := tree.Filesystem
+	fs, err := s.fs()
 
 	if err != nil {
 		return fmt.Errorf("Filesystem error: %w", err)
@@ -162,24 +190,7 @@ func (s *Storage) Update(typ string, id string, content interface{}) error {
 		return fmt.Errorf("Failed to write file %s: %w", path, err)
 	}
 
-	_, err = tree.Add(path)
-
-	if err != nil {
-		return fmt.Errorf("Failed to add file %s: %w", path, err)
-	}
-
-	_, err = tree.Commit(fmt.Sprintf("Update note %s at %s", id, path), &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		}})
-
-	if err != nil {
-		return fmt.Errorf("Failed to commit: %w", err)
-	}
-
-	return nil
+	return s.commit(path, fmt.Sprintf("Update note %s at %s", id, path))
 
 }
 

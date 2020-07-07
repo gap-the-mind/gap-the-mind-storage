@@ -13,6 +13,8 @@ type Note implements Node {
   id: ID!
   title: String!
   text: String!
+
+  tags: [Tag!]!
 }
 
 type User implements Node {
@@ -45,12 +47,18 @@ type Query {
   currentUser: User
 }
 
+input TagInput {
+  id: ID!
+}
+
 input EditNoteInput {
   title: String
   text: String
+  tags: [TagInput!]
 }
 
 type Mutation {
   createNote(title: String): Note
   editNote(id: ID!, edition: EditNoteInput!): Note
+  deleteNode(id: ID!): Note
 }
