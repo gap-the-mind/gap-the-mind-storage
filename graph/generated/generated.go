@@ -78,12 +78,18 @@ type ComplexityRoot struct {
 		ID func(childComplexity int) int
 	}
 
+	UIRendering struct {
+		ID    func(childComplexity int) int
+		Lanes func(childComplexity int) int
+	}
+
 	User struct {
-		Email           func(childComplexity int) int
-		ID              func(childComplexity int) int
-		Name            func(childComplexity int) int
-		Node            func(childComplexity int, id string) int
-		NotesConnection func(childComplexity int, first *int, after *string, last *int, before *string) int
+		Email                func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		Name                 func(childComplexity int) int
+		Node                 func(childComplexity int, id string) int
+		NotesConnection      func(childComplexity int, first *int, after *string, last *int, before *string) int
+		RenderingsConnection func(childComplexity int, first *int, after *string, last *int, before *string) int
 	}
 
 	UserNoteEdge struct {
@@ -92,6 +98,17 @@ type ComplexityRoot struct {
 	}
 
 	UserNotesConnection struct {
+		Edges      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	UserRenderingEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
+	UserRenderingsConnection struct {
 		Edges      func(childComplexity int) int
 		PageInfo   func(childComplexity int) int
 		TotalCount func(childComplexity int) int
@@ -109,6 +126,7 @@ type QueryResolver interface {
 type UserResolver interface {
 	Node(ctx context.Context, obj *model.User, id string) (model.Node, error)
 	NotesConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserNotesConnection, error)
+	RenderingsConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserRenderingsConnection, error)
 }
 
 type executableSchema struct {
@@ -246,6 +264,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tag.ID(childComplexity), true
 
+	case "UIRendering.id":
+		if e.complexity.UIRendering.ID == nil {
+			break
+		}
+
+		return e.complexity.UIRendering.ID(childComplexity), true
+
+	case "UIRendering.lanes":
+		if e.complexity.UIRendering.Lanes == nil {
+			break
+		}
+
+		return e.complexity.UIRendering.Lanes(childComplexity), true
+
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
@@ -291,6 +323,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.NotesConnection(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
 
+	case "User.renderingsConnection":
+		if e.complexity.User.RenderingsConnection == nil {
+			break
+		}
+
+		args, err := ec.field_User_renderingsConnection_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.RenderingsConnection(childComplexity, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string)), true
+
 	case "UserNoteEdge.cursor":
 		if e.complexity.UserNoteEdge.Cursor == nil {
 			break
@@ -325,6 +369,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserNotesConnection.TotalCount(childComplexity), true
+
+	case "UserRenderingEdge.cursor":
+		if e.complexity.UserRenderingEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.UserRenderingEdge.Cursor(childComplexity), true
+
+	case "UserRenderingEdge.node":
+		if e.complexity.UserRenderingEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.UserRenderingEdge.Node(childComplexity), true
+
+	case "UserRenderingsConnection.edges":
+		if e.complexity.UserRenderingsConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.UserRenderingsConnection.Edges(childComplexity), true
+
+	case "UserRenderingsConnection.pageInfo":
+		if e.complexity.UserRenderingsConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.UserRenderingsConnection.PageInfo(childComplexity), true
+
+	case "UserRenderingsConnection.totalCount":
+		if e.complexity.UserRenderingsConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.UserRenderingsConnection.TotalCount(childComplexity), true
 
 	}
 	return 0, false
@@ -415,7 +494,14 @@ input EditNoteInput {
   tags: [TagInput!]
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/rendering.graphql", Input: `type Lane implements Node {
+	&ast.Source{Name: "graph/rendering.graphql", Input: `union Rendering = UIRendering
+
+type UIRendering implements Node {
+  id: ID!
+  lanes: [Lane!]!
+}
+
+type Lane implements Node {
   id: ID!
   filter: String!
 }
@@ -451,6 +537,13 @@ input TagInput {
     last: Int
     before: String
   ): UserNotesConnection!
+
+  renderingsConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): UserRenderingsConnection!
 }
 
 type UserNotesConnection {
@@ -462,6 +555,17 @@ type UserNotesConnection {
 type UserNoteEdge {
   cursor: ID!
   node: Note
+}
+
+type UserRenderingsConnection {
+  edges: [UserRenderingEdge!]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserRenderingEdge {
+  cursor: ID!
+  node: Rendering
 }
 `, BuiltIn: false},
 }
@@ -550,6 +654,44 @@ func (ec *executionContext) field_User_node_args(ctx context.Context, rawArgs ma
 }
 
 func (ec *executionContext) field_User_notesConnection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["first"]; ok {
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["first"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["after"]; ok {
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["after"] = arg1
+	var arg2 *int
+	if tmp, ok := rawArgs["last"]; ok {
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["last"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["before"]; ok {
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["before"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_User_renderingsConnection_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -1205,6 +1347,74 @@ func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.Collected
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UIRendering_id(ctx context.Context, field graphql.CollectedField, obj *model.UIRendering) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UIRendering",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UIRendering_lanes(ctx context.Context, field graphql.CollectedField, obj *model.UIRendering) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UIRendering",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lanes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Lane)
+	fc.Result = res
+	return ec.marshalNLane2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1386,6 +1596,47 @@ func (ec *executionContext) _User_notesConnection(ctx context.Context, field gra
 	return ec.marshalNUserNotesConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNotesConnection(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _User_renderingsConnection(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "User",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_User_renderingsConnection_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.User().RenderingsConnection(rctx, obj, args["first"].(*int), args["after"].(*string), args["last"].(*int), args["before"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.UserRenderingsConnection)
+	fc.Result = res
+	return ec.marshalNUserRenderingsConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingsConnection(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserNoteEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.UserNoteEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1525,6 +1776,170 @@ func (ec *executionContext) _UserNotesConnection_totalCount(ctx context.Context,
 	}()
 	fc := &graphql.FieldContext{
 		Object:   "UserNotesConnection",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserRenderingEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserRenderingEdge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserRenderingEdge_node(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserRenderingEdge",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.Rendering)
+	fc.Result = res
+	return ec.marshalORendering2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserRenderingsConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingsConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserRenderingsConnection",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.UserRenderingEdge)
+	fc.Result = res
+	return ec.marshalOUserRenderingEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserRenderingsConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingsConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserRenderingsConnection",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserRenderingsConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingsConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserRenderingsConnection",
 		Field:    field,
 		Args:     nil,
 		IsMethod: false,
@@ -2668,6 +3083,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Note(ctx, sel, obj)
+	case model.UIRendering:
+		return ec._UIRendering(ctx, sel, &obj)
+	case *model.UIRendering:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UIRendering(ctx, sel, obj)
 	case model.Lane:
 		return ec._Lane(ctx, sel, &obj)
 	case *model.Lane:
@@ -2689,6 +3111,22 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _Rendering(ctx context.Context, sel ast.SelectionSet, obj model.Rendering) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.UIRendering:
+		return ec._UIRendering(ctx, sel, &obj)
+	case *model.UIRendering:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UIRendering(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -2908,6 +3346,38 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 	return out
 }
 
+var uIRenderingImplementors = []string{"UIRendering", "Rendering", "Node"}
+
+func (ec *executionContext) _UIRendering(ctx context.Context, sel ast.SelectionSet, obj *model.UIRendering) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uIRenderingImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UIRendering")
+		case "id":
+			out.Values[i] = ec._UIRendering_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lanes":
+			out.Values[i] = ec._UIRendering_lanes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var userImplementors = []string{"User", "Node"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
@@ -2954,6 +3424,20 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_notesConnection(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "renderingsConnection":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_renderingsConnection(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3019,6 +3503,69 @@ func (ec *executionContext) _UserNotesConnection(ctx context.Context, sel ast.Se
 			}
 		case "totalCount":
 			out.Values[i] = ec._UserNotesConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userRenderingEdgeImplementors = []string{"UserRenderingEdge"}
+
+func (ec *executionContext) _UserRenderingEdge(ctx context.Context, sel ast.SelectionSet, obj *model.UserRenderingEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userRenderingEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserRenderingEdge")
+		case "cursor":
+			out.Values[i] = ec._UserRenderingEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "node":
+			out.Values[i] = ec._UserRenderingEdge_node(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userRenderingsConnectionImplementors = []string{"UserRenderingsConnection"}
+
+func (ec *executionContext) _UserRenderingsConnection(ctx context.Context, sel ast.SelectionSet, obj *model.UserRenderingsConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userRenderingsConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserRenderingsConnection")
+		case "edges":
+			out.Values[i] = ec._UserRenderingsConnection_edges(ctx, field, obj)
+		case "pageInfo":
+			out.Values[i] = ec._UserRenderingsConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._UserRenderingsConnection_totalCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3324,6 +3871,57 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNLane2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLane(ctx context.Context, sel ast.SelectionSet, v model.Lane) graphql.Marshaler {
+	return ec._Lane(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLane2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Lane) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLane2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLane(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNLane2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLane(ctx context.Context, sel ast.SelectionSet, v *model.Lane) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Lane(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
 	return ec._PageInfo(ctx, sel, &v)
 }
@@ -3441,6 +4039,34 @@ func (ec *executionContext) marshalNUserNotesConnection2ᚖgithubᚗcomᚋgapᚑ
 		return graphql.Null
 	}
 	return ec._UserNotesConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserRenderingEdge2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingEdge(ctx context.Context, sel ast.SelectionSet, v model.UserRenderingEdge) graphql.Marshaler {
+	return ec._UserRenderingEdge(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserRenderingEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingEdge(ctx context.Context, sel ast.SelectionSet, v *model.UserRenderingEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserRenderingEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserRenderingsConnection2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingsConnection(ctx context.Context, sel ast.SelectionSet, v model.UserRenderingsConnection) graphql.Marshaler {
+	return ec._UserRenderingsConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserRenderingsConnection2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingsConnection(ctx context.Context, sel ast.SelectionSet, v *model.UserRenderingsConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserRenderingsConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3733,6 +4359,13 @@ func (ec *executionContext) marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋga
 	return ec._Note(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalORendering2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx context.Context, sel ast.SelectionSet, v model.Rendering) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Rendering(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
@@ -3815,6 +4448,46 @@ func (ec *executionContext) marshalOUserNoteEdge2ᚕᚖgithubᚗcomᚋgapᚑthe�
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNUserNoteEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserNoteEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalOUserRenderingEdge2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.UserRenderingEdge) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNUserRenderingEdge2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐUserRenderingEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

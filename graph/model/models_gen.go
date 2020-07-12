@@ -6,6 +6,10 @@ type Node interface {
 	IsNode()
 }
 
+type Rendering interface {
+	IsRendering()
+}
+
 type EditNoteInput struct {
 	Title *string     `json:"title"`
 	Text  *string     `json:"text"`
@@ -45,12 +49,21 @@ type TagInput struct {
 	ID string `json:"id"`
 }
 
+type UIRendering struct {
+	ID    string  `json:"id"`
+	Lanes []*Lane `json:"lanes"`
+}
+
+func (UIRendering) IsRendering() {}
+func (UIRendering) IsNode()      {}
+
 type User struct {
-	ID              string               `json:"id"`
-	Name            string               `json:"name"`
-	Email           string               `json:"email"`
-	Node            Node                 `json:"node"`
-	NotesConnection *UserNotesConnection `json:"notesConnection"`
+	ID                   string                    `json:"id"`
+	Name                 string                    `json:"name"`
+	Email                string                    `json:"email"`
+	Node                 Node                      `json:"node"`
+	NotesConnection      *UserNotesConnection      `json:"notesConnection"`
+	RenderingsConnection *UserRenderingsConnection `json:"renderingsConnection"`
 }
 
 func (User) IsNode() {}
@@ -64,4 +77,15 @@ type UserNotesConnection struct {
 	Edges      []*UserNoteEdge `json:"edges"`
 	PageInfo   *PageInfo       `json:"pageInfo"`
 	TotalCount int             `json:"totalCount"`
+}
+
+type UserRenderingEdge struct {
+	Cursor string    `json:"cursor"`
+	Node   Rendering `json:"node"`
+}
+
+type UserRenderingsConnection struct {
+	Edges      []*UserRenderingEdge `json:"edges"`
+	PageInfo   *PageInfo            `json:"pageInfo"`
+	TotalCount int                  `json:"totalCount"`
 }

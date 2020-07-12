@@ -11,6 +11,13 @@ type User implements Node {
     last: Int
     before: String
   ): UserNotesConnection!
+
+  renderingsConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): UserRenderingsConnection!
 }
 
 type UserNotesConnection {
@@ -22,4 +29,15 @@ type UserNotesConnection {
 type UserNoteEdge {
   cursor: ID!
   node: Note
+}
+
+type UserRenderingsConnection {
+  edges: [UserRenderingEdge!]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserRenderingEdge {
+  cursor: ID!
+  node: Rendering
 }

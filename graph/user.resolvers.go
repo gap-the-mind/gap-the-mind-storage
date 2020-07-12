@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
@@ -48,6 +49,10 @@ func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, fir
 			EndCursor:       &edges[len(edges)-1].Cursor,
 		},
 	}, nil
+}
+
+func (r *userResolver) RenderingsConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserRenderingsConnection, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // User returns generated.UserResolver implementation.

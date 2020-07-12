@@ -1,3 +1,10 @@
+union Rendering = UIRendering
+
+type UIRendering implements Node {
+  id: ID!
+  lanes: [Lane!]!
+}
+
 type Lane implements Node {
   id: ID!
   filter: String!
