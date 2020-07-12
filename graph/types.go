@@ -1,3 +1,6 @@
 package graph
 
-const NOTE_TYPE = "note"
+const (
+	Note      = "note"
+	Rendering = "rendering"
+)

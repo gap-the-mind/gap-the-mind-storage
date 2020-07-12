@@ -6,14 +6,15 @@ type Node interface {
 	IsNode()
 }
 
-type Rendering interface {
-	IsRendering()
-}
-
 type EditNoteInput struct {
 	Title *string     `json:"title"`
 	Text  *string     `json:"text"`
 	Tags  []*TagInput `json:"tags"`
+}
+
+type EditRenderingInput struct {
+	Name  *string      `json:"name"`
+	Lanes []*LaneInput `json:"lanes"`
 }
 
 type Lane struct {
@@ -22,6 +23,11 @@ type Lane struct {
 }
 
 func (Lane) IsNode() {}
+
+type LaneInput struct {
+	ID     string `json:"id"`
+	Filter string `json:"filter"`
+}
 
 type Note struct {
 	ID    string `json:"id"`
@@ -39,6 +45,14 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor"`
 }
 
+type Rendering struct {
+	ID    string  `json:"id"`
+	Name  *string `json:"name"`
+	Lanes []*Lane `json:"lanes"`
+}
+
+func (Rendering) IsNode() {}
+
 type Tag struct {
 	ID string `json:"id"`
 }
@@ -48,14 +62,6 @@ func (Tag) IsNode() {}
 type TagInput struct {
 	ID string `json:"id"`
 }
-
-type UIRendering struct {
-	ID    string  `json:"id"`
-	Lanes []*Lane `json:"lanes"`
-}
-
-func (UIRendering) IsRendering() {}
-func (UIRendering) IsNode()      {}
 
 type User struct {
 	ID                   string                    `json:"id"`
@@ -80,8 +86,8 @@ type UserNotesConnection struct {
 }
 
 type UserRenderingEdge struct {
-	Cursor string    `json:"cursor"`
-	Node   Rendering `json:"node"`
+	Cursor string     `json:"cursor"`
+	Node   *Rendering `json:"node"`
 }
 
 type UserRenderingsConnection struct {

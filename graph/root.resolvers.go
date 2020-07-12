@@ -19,7 +19,7 @@ func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*mode
 		Title: *title,
 	}
 
-	err := r.storage.Create(NOTE_TYPE, id, note)
+	err := r.storage.Create(Note, id, note)
 
 	return &note, err
 }
@@ -29,7 +29,7 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 		"id", id, "edition", edition)
 
 	note := model.Note{}
-	r.storage.Get(NOTE_TYPE, id, &note)
+	r.storage.Get(Note, id, &note)
 
 	if edition.Title != nil {
 		note.Title = *edition.Title
@@ -48,18 +48,61 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 
 	}
 
-	r.storage.Update(NOTE_TYPE, id, note)
+	r.storage.Update(Note, id, note)
 
 	return &note, nil
 }
 
-func (r *mutationResolver) DeleteNode(ctx context.Context, id string) (*model.Note, error) {
+func (r *mutationResolver) DeleteNote(ctx context.Context, id string) (*model.Note, error) {
 	note := model.Note{}
-	err := r.storage.Get(NOTE_TYPE, id, &note)
+	err := r.storage.Get(Note, id, &note)
 
-	r.storage.Delete(NOTE_TYPE, id)
+	r.storage.Delete(Note, id)
 
 	return &note, err
+}
+
+func (r *mutationResolver) CreateRendering(ctx context.Context, name *string) (*model.Rendering, error) {
+	id := uuid.New().String()
+
+	rendering := model.Rendering{
+		ID:    id,
+		Name:  name,
+		Lanes: make([]*model.Lane, 0),
+	}
+
+	err := r.storage.Create(Rendering, id, rendering)
+
+	return &rendering, err
+}
+
+func (r *mutationResolver) EditRendering(ctx context.Context, id string, edition model.EditRenderingInput) (*model.Rendering, error) {
+	rendering := model.Rendering{}
+	r.storage.Get(Rendering, id, &rendering)
+
+	if edition.Lanes != nil {
+		rendering.Lanes = make([]*model.Lane, len(edition.Lanes))
+
+		for i, l := range edition.Lanes {
+			rendering.Lanes[i] = &model.Lane{
+				ID:     l.ID,
+				Filter: l.Filter,
+			}
+		}
+	}
+
+	r.storage.Update(Rendering, id, rendering)
+
+	return &rendering, nil
+}
+
+func (r *mutationResolver) DeleteRendering(ctx context.Context, id string) (*model.Rendering, error) {
+	rendering := model.Rendering{}
+	err := r.storage.Get(Rendering, id, &rendering)
+
+	r.storage.Delete(Rendering, id)
+
+	return &rendering, err
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {

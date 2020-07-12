@@ -13,7 +13,8 @@ import (
 )
 
 var layout = map[string]string{
-	"note": "notes",
+	"note":      "notes",
+	"rendering": "rendering",
 }
 
 func prefix(fs billy.Filesystem, typ string) string {
@@ -194,18 +195,18 @@ func (s *Storage) Update(typ string, id string, content interface{}) error {
 
 }
 
-func (s *Storage) List(typ string) ([]string, error) {
+func (s *Storage) List(typ string) []string {
 	tree, err := s.repo.Worktree()
 	fs := tree.Filesystem
 
 	if err != nil {
-		return nil, err
+		return make([]string, 0)
 	}
 
 	infos, err := fs.ReadDir(prefix(fs, typ))
 
 	if err != nil {
-		return nil, err
+		return make([]string, 0)
 	}
 
 	ids := make([]string, len(infos))
@@ -214,5 +215,5 @@ func (s *Storage) List(typ string) ([]string, error) {
 		ids[i] = id(typ, info.Name())
 	}
 
-	return ids, nil
+	return ids
 }

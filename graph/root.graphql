@@ -5,5 +5,9 @@ type Query {
 type Mutation {
   createNote(title: String): Note
   editNote(id: ID!, edition: EditNoteInput!): Note
-  deleteNode(id: ID!): Note
+  deleteNote(id: ID!): Note
+
+  createRendering(name: String): Rendering
+  editRendering(id: ID!, edition: EditRenderingInput!): Rendering
+  deleteRendering(id: ID!): Rendering
 }

@@ -1,11 +1,20 @@
-union Rendering = UIRendering
-
-type UIRendering implements Node {
+type Rendering implements Node {
   id: ID!
+  name: String
   lanes: [Lane!]!
 }
 
 type Lane implements Node {
   id: ID!
   filter: String!
+}
+
+input LaneInput {
+  id: ID!
+  filter: String!
+}
+
+input EditRenderingInput {
+  name: String
+  lanes: [LaneInput!]
 }

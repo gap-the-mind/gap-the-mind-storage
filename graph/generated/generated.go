@@ -51,9 +51,12 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateNote func(childComplexity int, title *string) int
-		DeleteNode func(childComplexity int, id string) int
-		EditNote   func(childComplexity int, id string, edition model.EditNoteInput) int
+		CreateNote      func(childComplexity int, title *string) int
+		CreateRendering func(childComplexity int, name *string) int
+		DeleteNote      func(childComplexity int, id string) int
+		DeleteRendering func(childComplexity int, id string) int
+		EditNote        func(childComplexity int, id string, edition model.EditNoteInput) int
+		EditRendering   func(childComplexity int, id string, edition model.EditRenderingInput) int
 	}
 
 	Note struct {
@@ -74,13 +77,14 @@ type ComplexityRoot struct {
 		CurrentUser func(childComplexity int) int
 	}
 
-	Tag struct {
-		ID func(childComplexity int) int
-	}
-
-	UIRendering struct {
+	Rendering struct {
 		ID    func(childComplexity int) int
 		Lanes func(childComplexity int) int
+		Name  func(childComplexity int) int
+	}
+
+	Tag struct {
+		ID func(childComplexity int) int
 	}
 
 	User struct {
@@ -118,7 +122,10 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	CreateNote(ctx context.Context, title *string) (*model.Note, error)
 	EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error)
-	DeleteNode(ctx context.Context, id string) (*model.Note, error)
+	DeleteNote(ctx context.Context, id string) (*model.Note, error)
+	CreateRendering(ctx context.Context, name *string) (*model.Rendering, error)
+	EditRendering(ctx context.Context, id string, edition model.EditRenderingInput) (*model.Rendering, error)
+	DeleteRendering(ctx context.Context, id string) (*model.Rendering, error)
 }
 type QueryResolver interface {
 	CurrentUser(ctx context.Context) (*model.User, error)
@@ -170,17 +177,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateNote(childComplexity, args["title"].(*string)), true
 
-	case "Mutation.deleteNode":
-		if e.complexity.Mutation.DeleteNode == nil {
+	case "Mutation.createRendering":
+		if e.complexity.Mutation.CreateRendering == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_deleteNode_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_createRendering_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteNode(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.CreateRendering(childComplexity, args["name"].(*string)), true
+
+	case "Mutation.deleteNote":
+		if e.complexity.Mutation.DeleteNote == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteNote_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteNote(childComplexity, args["id"].(string)), true
+
+	case "Mutation.deleteRendering":
+		if e.complexity.Mutation.DeleteRendering == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteRendering_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteRendering(childComplexity, args["id"].(string)), true
 
 	case "Mutation.editNote":
 		if e.complexity.Mutation.EditNote == nil {
@@ -193,6 +224,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.EditNote(childComplexity, args["id"].(string), args["edition"].(model.EditNoteInput)), true
+
+	case "Mutation.editRendering":
+		if e.complexity.Mutation.EditRendering == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_editRendering_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.EditRendering(childComplexity, args["id"].(string), args["edition"].(model.EditRenderingInput)), true
 
 	case "Note.id":
 		if e.complexity.Note.ID == nil {
@@ -257,26 +300,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.CurrentUser(childComplexity), true
 
+	case "Rendering.id":
+		if e.complexity.Rendering.ID == nil {
+			break
+		}
+
+		return e.complexity.Rendering.ID(childComplexity), true
+
+	case "Rendering.lanes":
+		if e.complexity.Rendering.Lanes == nil {
+			break
+		}
+
+		return e.complexity.Rendering.Lanes(childComplexity), true
+
+	case "Rendering.name":
+		if e.complexity.Rendering.Name == nil {
+			break
+		}
+
+		return e.complexity.Rendering.Name(childComplexity), true
+
 	case "Tag.id":
 		if e.complexity.Tag.ID == nil {
 			break
 		}
 
 		return e.complexity.Tag.ID(childComplexity), true
-
-	case "UIRendering.id":
-		if e.complexity.UIRendering.ID == nil {
-			break
-		}
-
-		return e.complexity.UIRendering.ID(childComplexity), true
-
-	case "UIRendering.lanes":
-		if e.complexity.UIRendering.Lanes == nil {
-			break
-		}
-
-		return e.complexity.UIRendering.Lanes(childComplexity), true
 
 	case "User.email":
 		if e.complexity.User.Email == nil {
@@ -494,16 +544,25 @@ input EditNoteInput {
   tags: [TagInput!]
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "graph/rendering.graphql", Input: `union Rendering = UIRendering
-
-type UIRendering implements Node {
+	&ast.Source{Name: "graph/rendering.graphql", Input: `type Rendering implements Node {
   id: ID!
+  name: String
   lanes: [Lane!]!
 }
 
 type Lane implements Node {
   id: ID!
   filter: String!
+}
+
+input LaneInput {
+  id: ID!
+  filter: String!
+}
+
+input EditRenderingInput {
+  name: String
+  lanes: [LaneInput!]
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/root.graphql", Input: `type Query {
@@ -513,7 +572,11 @@ type Lane implements Node {
 type Mutation {
   createNote(title: String): Note
   editNote(id: ID!, edition: EditNoteInput!): Note
-  deleteNode(id: ID!): Note
+  deleteNote(id: ID!): Note
+
+  createRendering(name: String): Rendering
+  editRendering(id: ID!, edition: EditRenderingInput!): Rendering
+  deleteRendering(id: ID!): Rendering
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "graph/tags.graphql", Input: `type Tag implements Node {
@@ -589,7 +652,35 @@ func (ec *executionContext) field_Mutation_createNote_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_deleteNode_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_createRendering_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["name"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteNote_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteRendering_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -617,6 +708,28 @@ func (ec *executionContext) field_Mutation_editNote_args(ctx context.Context, ra
 	var arg1 model.EditNoteInput
 	if tmp, ok := rawArgs["edition"]; ok {
 		arg1, err = ec.unmarshalNEditNoteInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐEditNoteInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["edition"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_editRendering_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 model.EditRenderingInput
+	if tmp, ok := rawArgs["edition"]; ok {
+		arg1, err = ec.unmarshalNEditRenderingInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐEditRenderingInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -909,7 +1022,7 @@ func (ec *executionContext) _Mutation_editNote(ctx context.Context, field graphq
 	return ec.marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_deleteNode(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -925,7 +1038,7 @@ func (ec *executionContext) _Mutation_deleteNode(ctx context.Context, field grap
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteNode_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_deleteNote_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -933,7 +1046,7 @@ func (ec *executionContext) _Mutation_deleteNode(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteNode(rctx, args["id"].(string))
+		return ec.resolvers.Mutation().DeleteNote(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -945,6 +1058,120 @@ func (ec *executionContext) _Mutation_deleteNode(ctx context.Context, field grap
 	res := resTmp.(*model.Note)
 	fc.Result = res
 	return ec.marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐNote(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createRendering(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createRendering_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateRendering(rctx, args["name"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Rendering)
+	fc.Result = res
+	return ec.marshalORendering2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_editRendering(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_editRendering_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().EditRendering(rctx, args["id"].(string), args["edition"].(model.EditRenderingInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Rendering)
+	fc.Result = res
+	return ec.marshalORendering2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteRendering(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteRendering_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteRendering(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Rendering)
+	fc.Result = res
+	return ec.marshalORendering2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Note_id(ctx context.Context, field graphql.CollectedField, obj *model.Note) (ret graphql.Marshaler) {
@@ -1313,6 +1540,105 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Rendering_id(ctx context.Context, field graphql.CollectedField, obj *model.Rendering) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Rendering",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Rendering_name(ctx context.Context, field graphql.CollectedField, obj *model.Rendering) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Rendering",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Rendering_lanes(ctx context.Context, field graphql.CollectedField, obj *model.Rendering) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Rendering",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lanes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Lane)
+	fc.Result = res
+	return ec.marshalNLane2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1345,74 +1671,6 @@ func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.Collected
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _UIRendering_id(ctx context.Context, field graphql.CollectedField, obj *model.UIRendering) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "UIRendering",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _UIRendering_lanes(ctx context.Context, field graphql.CollectedField, obj *model.UIRendering) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "UIRendering",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Lanes, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Lane)
-	fc.Result = res
-	return ec.marshalNLane2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -1861,9 +2119,9 @@ func (ec *executionContext) _UserRenderingEdge_node(ctx context.Context, field g
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.Rendering)
+	res := resTmp.(*model.Rendering)
 	fc.Result = res
-	return ec.marshalORendering2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
+	return ec.marshalORendering2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _UserRenderingsConnection_edges(ctx context.Context, field graphql.CollectedField, obj *model.UserRenderingsConnection) (ret graphql.Marshaler) {
@@ -3050,6 +3308,54 @@ func (ec *executionContext) unmarshalInputEditNoteInput(ctx context.Context, obj
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputEditRenderingInput(ctx context.Context, obj interface{}) (model.EditRenderingInput, error) {
+	var it model.EditRenderingInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lanes":
+			var err error
+			it.Lanes, err = ec.unmarshalOLaneInput2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLaneInput(ctx context.Context, obj interface{}) (model.LaneInput, error) {
+	var it model.LaneInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "filter":
+			var err error
+			it.Filter, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTagInput(ctx context.Context, obj interface{}) (model.TagInput, error) {
 	var it model.TagInput
 	var asMap = obj.(map[string]interface{})
@@ -3083,13 +3389,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Note(ctx, sel, obj)
-	case model.UIRendering:
-		return ec._UIRendering(ctx, sel, &obj)
-	case *model.UIRendering:
+	case model.Rendering:
+		return ec._Rendering(ctx, sel, &obj)
+	case *model.Rendering:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._UIRendering(ctx, sel, obj)
+		return ec._Rendering(ctx, sel, obj)
 	case model.Lane:
 		return ec._Lane(ctx, sel, &obj)
 	case *model.Lane:
@@ -3111,22 +3417,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _Rendering(ctx context.Context, sel ast.SelectionSet, obj model.Rendering) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case model.UIRendering:
-		return ec._UIRendering(ctx, sel, &obj)
-	case *model.UIRendering:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._UIRendering(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -3187,8 +3477,14 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createNote(ctx, field)
 		case "editNote":
 			out.Values[i] = ec._Mutation_editNote(ctx, field)
-		case "deleteNode":
-			out.Values[i] = ec._Mutation_deleteNode(ctx, field)
+		case "deleteNote":
+			out.Values[i] = ec._Mutation_deleteNote(ctx, field)
+		case "createRendering":
+			out.Values[i] = ec._Mutation_createRendering(ctx, field)
+		case "editRendering":
+			out.Values[i] = ec._Mutation_editRendering(ctx, field)
+		case "deleteRendering":
+			out.Values[i] = ec._Mutation_deleteRendering(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3319,19 +3615,26 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	return out
 }
 
-var tagImplementors = []string{"Tag", "Node"}
+var renderingImplementors = []string{"Rendering", "Node"}
 
-func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj *model.Tag) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, tagImplementors)
+func (ec *executionContext) _Rendering(ctx context.Context, sel ast.SelectionSet, obj *model.Rendering) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, renderingImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("Tag")
+			out.Values[i] = graphql.MarshalString("Rendering")
 		case "id":
-			out.Values[i] = ec._Tag_id(ctx, field, obj)
+			out.Values[i] = ec._Rendering_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Rendering_name(ctx, field, obj)
+		case "lanes":
+			out.Values[i] = ec._Rendering_lanes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3346,24 +3649,19 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 	return out
 }
 
-var uIRenderingImplementors = []string{"UIRendering", "Rendering", "Node"}
+var tagImplementors = []string{"Tag", "Node"}
 
-func (ec *executionContext) _UIRendering(ctx context.Context, sel ast.SelectionSet, obj *model.UIRendering) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, uIRenderingImplementors)
+func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj *model.Tag) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tagImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("UIRendering")
+			out.Values[i] = graphql.MarshalString("Tag")
 		case "id":
-			out.Values[i] = ec._UIRendering_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "lanes":
-			out.Values[i] = ec._UIRendering_lanes(ctx, field, obj)
+			out.Values[i] = ec._Tag_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3843,6 +4141,10 @@ func (ec *executionContext) unmarshalNEditNoteInput2githubᚗcomᚋgapᚑtheᚑm
 	return ec.unmarshalInputEditNoteInput(ctx, v)
 }
 
+func (ec *executionContext) unmarshalNEditRenderingInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐEditRenderingInput(ctx context.Context, v interface{}) (model.EditRenderingInput, error) {
+	return ec.unmarshalInputEditRenderingInput(ctx, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -3920,6 +4222,18 @@ func (ec *executionContext) marshalNLane2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋga
 		return graphql.Null
 	}
 	return ec._Lane(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNLaneInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInput(ctx context.Context, v interface{}) (model.LaneInput, error) {
+	return ec.unmarshalInputLaneInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNLaneInput2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInput(ctx context.Context, v interface{}) (*model.LaneInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalNLaneInput2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalNPageInfo2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v model.PageInfo) graphql.Marshaler {
@@ -4341,6 +4655,26 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
+func (ec *executionContext) unmarshalOLaneInput2ᚕᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInputᚄ(ctx context.Context, v interface{}) ([]*model.LaneInput, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]*model.LaneInput, len(vSlice))
+	for i := range vSlice {
+		res[i], err = ec.unmarshalNLaneInput2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐLaneInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) marshalONode2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐNode(ctx context.Context, sel ast.SelectionSet, v model.Node) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -4360,6 +4694,10 @@ func (ec *executionContext) marshalONote2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋga
 }
 
 func (ec *executionContext) marshalORendering2githubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx context.Context, sel ast.SelectionSet, v model.Rendering) graphql.Marshaler {
+	return ec._Rendering(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalORendering2ᚖgithubᚗcomᚋgapᚑtheᚑmindᚋgapᚑtheᚑmindᚑstorageᚋgraphᚋmodelᚐRendering(ctx context.Context, sel ast.SelectionSet, v *model.Rendering) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
