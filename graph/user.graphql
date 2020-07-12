@@ -1,0 +1,25 @@
+type User implements Node {
+  id: ID!
+  name: String!
+  email: String!
+
+  node(id: ID!): Node
+
+  notesConnection(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): UserNotesConnection!
+}
+
+type UserNotesConnection {
+  edges: [UserNoteEdge!]
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserNoteEdge {
+  cursor: ID!
+  node: Note
+}

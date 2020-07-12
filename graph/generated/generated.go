@@ -45,6 +45,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Lane struct {
+		Filter func(childComplexity int) int
+		ID     func(childComplexity int) int
+	}
+
 	Mutation struct {
 		CreateNote func(childComplexity int, title *string) int
 		DeleteNode func(childComplexity int, id string) int
@@ -120,6 +125,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Lane.filter":
+		if e.complexity.Lane.Filter == nil {
+			break
+		}
+
+		return e.complexity.Lane.Filter(childComplexity), true
+
+	case "Lane.id":
+		if e.complexity.Lane.ID == nil {
+			break
+		}
+
+		return e.complexity.Lane.ID(childComplexity), true
 
 	case "Mutation.createNote":
 		if e.complexity.Mutation.CreateNote == nil {
@@ -371,7 +390,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "graph/notes.graphql", Input: `interface Node {
+	&ast.Source{Name: "graph/meta.graphql", Input: `interface Node {
   id: ID!
 }
 
@@ -381,8 +400,8 @@ type PageInfo {
   startCursor: String
   endCursor: String
 }
-
-type Note implements Node {
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/notes.graphql", Input: `type Note implements Node {
   id: ID!
   title: String!
   text: String!
@@ -390,7 +409,36 @@ type Note implements Node {
   tags: [Tag!]!
 }
 
-type User implements Node {
+input EditNoteInput {
+  title: String
+  text: String
+  tags: [TagInput!]
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/rendering.graphql", Input: `type Lane implements Node {
+  id: ID!
+  filter: String!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/root.graphql", Input: `type Query {
+  currentUser: User
+}
+
+type Mutation {
+  createNote(title: String): Note
+  editNote(id: ID!, edition: EditNoteInput!): Note
+  deleteNode(id: ID!): Note
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/tags.graphql", Input: `type Tag implements Node {
+  id: ID!
+}
+
+input TagInput {
+  id: ID!
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "graph/user.graphql", Input: `type User implements Node {
   id: ID!
   name: String!
   email: String!
@@ -414,30 +462,6 @@ type UserNotesConnection {
 type UserNoteEdge {
   cursor: ID!
   node: Note
-}
-
-type Query {
-  currentUser: User
-}
-
-input TagInput {
-  id: ID!
-}
-
-input EditNoteInput {
-  title: String
-  text: String
-  tags: [TagInput!]
-}
-
-type Mutation {
-  createNote(title: String): Note
-  editNote(id: ID!, edition: EditNoteInput!): Note
-  deleteNode(id: ID!): Note
-}
-`, BuiltIn: false},
-	&ast.Source{Name: "graph/tags.graphql", Input: `type Tag implements Node {
-  id: ID!
 }
 `, BuiltIn: false},
 }
@@ -598,6 +622,74 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Lane_id(ctx context.Context, field graphql.CollectedField, obj *model.Lane) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Lane",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Lane_filter(ctx context.Context, field graphql.CollectedField, obj *model.Lane) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Lane",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Filter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Mutation_createNote(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
@@ -2576,13 +2668,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Note(ctx, sel, obj)
-	case model.User:
-		return ec._User(ctx, sel, &obj)
-	case *model.User:
+	case model.Lane:
+		return ec._Lane(ctx, sel, &obj)
+	case *model.Lane:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._User(ctx, sel, obj)
+		return ec._Lane(ctx, sel, obj)
 	case model.Tag:
 		return ec._Tag(ctx, sel, &obj)
 	case *model.Tag:
@@ -2590,6 +2682,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Tag(ctx, sel, obj)
+	case model.User:
+		return ec._User(ctx, sel, &obj)
+	case *model.User:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._User(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -2598,6 +2697,38 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var laneImplementors = []string{"Lane", "Node"}
+
+func (ec *executionContext) _Lane(ctx context.Context, sel ast.SelectionSet, obj *model.Lane) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, laneImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Lane")
+		case "id":
+			out.Values[i] = ec._Lane_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "filter":
+			out.Values[i] = ec._Lane_filter(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var mutationImplementors = []string{"Mutation"}
 

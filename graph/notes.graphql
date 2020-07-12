@@ -1,14 +1,3 @@
-interface Node {
-  id: ID!
-}
-
-type PageInfo {
-  hasNextPage: Boolean!
-  hasPreviousPage: Boolean!
-  startCursor: String
-  endCursor: String
-}
-
 type Note implements Node {
   id: ID!
   title: String!
@@ -17,48 +6,8 @@ type Note implements Node {
   tags: [Tag!]!
 }
 
-type User implements Node {
-  id: ID!
-  name: String!
-  email: String!
-
-  node(id: ID!): Node
-
-  notesConnection(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): UserNotesConnection!
-}
-
-type UserNotesConnection {
-  edges: [UserNoteEdge!]
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type UserNoteEdge {
-  cursor: ID!
-  node: Note
-}
-
-type Query {
-  currentUser: User
-}
-
-input TagInput {
-  id: ID!
-}
-
 input EditNoteInput {
   title: String
   text: String
   tags: [TagInput!]
-}
-
-type Mutation {
-  createNote(title: String): Note
-  editNote(id: ID!, edition: EditNoteInput!): Note
-  deleteNode(id: ID!): Note
 }

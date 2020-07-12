@@ -12,6 +12,13 @@ type EditNoteInput struct {
 	Tags  []*TagInput `json:"tags"`
 }
 
+type Lane struct {
+	ID     string `json:"id"`
+	Filter string `json:"filter"`
+}
+
+func (Lane) IsNode() {}
+
 type Note struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`

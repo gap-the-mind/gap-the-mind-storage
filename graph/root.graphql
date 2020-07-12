@@ -1,0 +1,9 @@
+type Query {
+  currentUser: User
+}
+
+type Mutation {
+  createNote(title: String): Note
+  editNote(id: ID!, edition: EditNoteInput!): Note
+  deleteNode(id: ID!): Note
+}
