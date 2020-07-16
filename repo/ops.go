@@ -9,34 +9,42 @@ import (
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/google/uuid"
 	"github.com/pelletier/go-toml"
 )
+
+// Entity is base for all storable objects
+type EntityRef interface {
+	Id() string
+	SetId(string)
+
+	Nature() string
+}
 
 var layout = map[string]string{
 	"note":      "notes",
 	"rendering": "rendering",
 }
 
-func prefix(fs billy.Filesystem, typ string) string {
-	prefix, found := layout[typ]
+func id(filename string) string {
+	return strings.TrimSuffix(filename, ".toml")
+}
+
+func prefix(nature string) string {
+	prefix, found := layout[nature]
 
 	if !found {
 		prefix = "miscellanous"
 	}
 
 	return prefix
+
 }
 
-func filename(typ string, id string) string {
-	return fmt.Sprintf("%s.toml", id)
-}
-
-func id(typ string, filename string) string {
-	return strings.TrimSuffix(filename, ".toml")
-}
-
-func path(fs billy.Filesystem, typ string, id string) string {
-	path := fs.Join(prefix(fs, typ), filename(typ, id))
+func path(fs billy.Filesystem, entity EntityRef) string {
+	filename := fmt.Sprintf("%s.toml", entity.Id())
+	prefix := prefix(entity.Nature())
+	path := fs.Join(prefix, filename)
 
 	return path
 
@@ -73,14 +81,14 @@ func (s *Storage) commit(path string, msg string) error {
 	return nil
 }
 
-func (s *Storage) Delete(typ string, id string) error {
+func (s *Storage) Delete(target EntityRef) error {
 	fs, err := s.fs()
 
 	if err != nil {
 		return err
 	}
 
-	path := path(fs, typ, id)
+	path := path(fs, target)
 
 	err = fs.Remove(path)
 
@@ -88,10 +96,12 @@ func (s *Storage) Delete(typ string, id string) error {
 		return err
 	}
 
-	return s.commit(path, fmt.Sprintf("Delete note %s at %s", id, path))
+	return s.commit(path, fmt.Sprintf("Delete note %s at %s", target.Id(), path))
 }
 
-func (s *Storage) Create(typ string, id string, content interface{}) error {
+func (s *Storage) Create(content EntityRef) error {
+	content.SetId(uuid.New().String())
+
 	fs, err := s.fs()
 
 	if err != nil {
@@ -104,7 +114,7 @@ func (s *Storage) Create(typ string, id string, content interface{}) error {
 		return err
 	}
 
-	path := path(fs, typ, id)
+	path := path(fs, content)
 	file, err := fs.Create(path)
 
 	if err != nil {
@@ -117,17 +127,17 @@ func (s *Storage) Create(typ string, id string, content interface{}) error {
 		return err
 	}
 
-	return s.commit(path, fmt.Sprintf("Create note %s at %s", id, path))
+	return s.commit(path, fmt.Sprintf("Create note %s at %s", content.Id(), path))
 }
 
-func (s *Storage) Get(typ string, id string, target interface{}) error {
+func (s *Storage) Get(target EntityRef) error {
 	fs, err := s.fs()
 
 	if err != nil {
 		return fmt.Errorf("Filesystem error: %w", err)
 	}
 
-	path := path(fs, typ, id)
+	path := path(fs, target)
 
 	file, err := fs.Open(path)
 
@@ -144,18 +154,17 @@ func (s *Storage) Get(typ string, id string, target interface{}) error {
 	err = toml.Unmarshal(b, target)
 
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal %s from %s: %w", id, path, err)
+		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), path, err)
 	}
 
 	return nil
 
 }
 
-func (s *Storage) Update(typ string, id string, content interface{}) error {
+func (s *Storage) Update(content EntityRef) error {
 	logger.Debugw("Update",
-		"type", typ,
-		"id", id,
-		"content", content,
+		"type", content.Nature(),
+		"id", content.Id(),
 	)
 
 	fs, err := s.fs()
@@ -170,13 +179,12 @@ func (s *Storage) Update(typ string, id string, content interface{}) error {
 		return fmt.Errorf("Failed to marshal: %w", err)
 	}
 
-	path := path(fs, typ, id)
+	path := path(fs, content)
 
 	logger.Debugw("Saving",
-		"type", typ,
-		"id", id,
+		"type", content.Nature(),
+		"id", content.Id(),
 		"path", path,
-		"content", b,
 	)
 
 	file, err := fs.Create(path)
@@ -191,7 +199,7 @@ func (s *Storage) Update(typ string, id string, content interface{}) error {
 		return fmt.Errorf("Failed to write file %s: %w", path, err)
 	}
 
-	return s.commit(path, fmt.Sprintf("Update note %s at %s", id, path))
+	return s.commit(path, fmt.Sprintf("Update note %s at %s", content.Id(), path))
 
 }
 
@@ -203,7 +211,7 @@ func (s *Storage) List(typ string) []string {
 		return make([]string, 0)
 	}
 
-	infos, err := fs.ReadDir(prefix(fs, typ))
+	infos, err := fs.ReadDir(prefix(typ))
 
 	if err != nil {
 		return make([]string, 0)
@@ -212,7 +220,7 @@ func (s *Storage) List(typ string) []string {
 	ids := make([]string, len(infos))
 
 	for i, info := range infos {
-		ids[i] = id(typ, info.Name())
+		ids[i] = id(info.Name())
 	}
 
 	return ids

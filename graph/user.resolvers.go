@@ -12,10 +12,11 @@ import (
 )
 
 func (r *userResolver) Node(ctx context.Context, obj *model.User, id string) (model.Node, error) {
-	note := model.Note{}
-	err := r.storage.Get(Note, id, &note)
+	note := model.Note{
+		ID: id,
+	}
 
-	return note, err
+	return note, r.storage.Get(&note)
 }
 
 func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, first *int, after *string, last *int, before *string) (*model.UserNotesConnection, error) {
@@ -24,9 +25,11 @@ func (r *userResolver) NotesConnection(ctx context.Context, obj *model.User, fir
 	edges := make([]*model.UserNoteEdge, len(ids))
 
 	for i, id := range ids {
-		note := model.Note{}
+		note := model.Note{
+			ID: id,
+		}
 
-		r.storage.Get(Note, id, &note)
+		r.storage.Get(&note)
 
 		edges[i] = &model.UserNoteEdge{
 			Cursor: base64.StdEncoding.EncodeToString([]byte(id)),
@@ -58,9 +61,11 @@ func (r *userResolver) RenderingsConnection(ctx context.Context, obj *model.User
 	edges := make([]*model.UserRenderingEdge, len(ids))
 
 	for i, id := range ids {
-		rendering := model.Rendering{}
+		rendering := model.Rendering{
+			ID: id,
+		}
 
-		r.storage.Get(Rendering, id, &rendering)
+		r.storage.Get(&rendering)
 
 		edges[i] = &model.UserRenderingEdge{
 			Cursor: base64.StdEncoding.EncodeToString([]byte(id)),

@@ -8,28 +8,22 @@ import (
 
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/generated"
 	"github.com/gap-the-mind/gap-the-mind-storage/graph/model"
-	"github.com/google/uuid"
 )
 
 func (r *mutationResolver) CreateNote(ctx context.Context, title *string) (*model.Note, error) {
-	id := uuid.New().String()
-
 	note := model.Note{
-		ID:    id,
 		Title: *title,
 	}
 
-	err := r.storage.Create(Note, id, note)
-
-	return &note, err
+	return &note, r.storage.Create(&note)
 }
 
 func (r *mutationResolver) EditNote(ctx context.Context, id string, edition model.EditNoteInput) (*model.Note, error) {
-	logger.Debugw("Edit Note",
-		"id", id, "edition", edition)
+	note := model.Note{
+		ID: id,
+	}
 
-	note := model.Note{}
-	r.storage.Get(Note, id, &note)
+	r.storage.Get(&note)
 
 	if edition.Title != nil {
 		note.Title = *edition.Title
@@ -45,40 +39,34 @@ func (r *mutationResolver) EditNote(ctx context.Context, id string, edition mode
 		for i, t := range edition.Tags {
 			note.Tags[i] = &model.Tag{ID: t.ID}
 		}
-
 	}
 
-	r.storage.Update(Note, id, note)
-
-	return &note, nil
+	return &note, r.storage.Update(&note)
 }
 
 func (r *mutationResolver) DeleteNote(ctx context.Context, id string) (*model.Note, error) {
-	note := model.Note{}
-	err := r.storage.Get(Note, id, &note)
+	note := model.Note{
+		ID: id,
+	}
 
-	r.storage.Delete(Note, id)
-
-	return &note, err
+	return &note, r.storage.Delete(&note)
 }
 
 func (r *mutationResolver) CreateRendering(ctx context.Context, name *string) (*model.Rendering, error) {
-	id := uuid.New().String()
-
 	rendering := model.Rendering{
-		ID:    id,
 		Name:  name,
 		Lanes: make([]*model.Lane, 0),
 	}
 
-	err := r.storage.Create(Rendering, id, rendering)
-
-	return &rendering, err
+	return &rendering, r.storage.Create(&rendering)
 }
 
 func (r *mutationResolver) EditRendering(ctx context.Context, id string, edition model.EditRenderingInput) (*model.Rendering, error) {
-	rendering := model.Rendering{}
-	r.storage.Get(Rendering, id, &rendering)
+	rendering := model.Rendering{
+		ID: id,
+	}
+
+	r.storage.Get(&rendering)
 
 	if edition.Lanes != nil {
 		rendering.Lanes = make([]*model.Lane, len(edition.Lanes))
@@ -91,18 +79,15 @@ func (r *mutationResolver) EditRendering(ctx context.Context, id string, edition
 		}
 	}
 
-	r.storage.Update(Rendering, id, rendering)
-
-	return &rendering, nil
+	return &rendering, r.storage.Update(&rendering)
 }
 
 func (r *mutationResolver) DeleteRendering(ctx context.Context, id string) (*model.Rendering, error) {
-	rendering := model.Rendering{}
-	err := r.storage.Get(Rendering, id, &rendering)
+	rendering := model.Rendering{
+		ID: id,
+	}
 
-	r.storage.Delete(Rendering, id)
-
-	return &rendering, err
+	return &rendering, r.storage.Delete(&rendering)
 }
 
 func (r *queryResolver) CurrentUser(ctx context.Context) (*model.User, error) {
