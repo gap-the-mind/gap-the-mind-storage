@@ -1,16 +1,10 @@
 package repo
 
 import (
-	"github.com/gap-the-mind/gap-the-mind-storage/log"
 	"github.com/go-git/go-git/v5"
 )
 
-var logger = log.CreateLogger()
-
 // Storage provide CRUD ops
-type Storage struct {
-	repo *git.Repository
-}
 
 // Open a new repo
 func Open(path string) (Storage, error) {

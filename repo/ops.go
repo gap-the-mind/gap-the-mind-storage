@@ -3,7 +3,6 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"time"
 
 	"github.com/go-git/go-billy/v5"
@@ -13,42 +12,6 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-// Entity is base for all storable objects
-type EntityRef interface {
-	Id() string
-	SetId(string)
-
-	Nature() string
-}
-
-var layout = map[string]string{
-	"note":      "notes",
-	"rendering": "rendering",
-}
-
-func id(filename string) string {
-	return strings.TrimSuffix(filename, ".toml")
-}
-
-func prefix(nature string) string {
-	prefix, found := layout[nature]
-
-	if !found {
-		prefix = "miscellanous"
-	}
-
-	return prefix
-
-}
-
-func path(fs billy.Filesystem, entity EntityRef) string {
-	filename := fmt.Sprintf("%s.toml", entity.Id())
-	prefix := prefix(entity.Nature())
-	path := fs.Join(prefix, filename)
-
-	return path
-
-}
 func (s *Storage) fs() (billy.Filesystem, error) {
 	tree, err := s.repo.Worktree()
 
