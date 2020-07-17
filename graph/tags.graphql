@@ -1,7 +1,0 @@
-type Tag implements Node {
-  id: ID!
-}
-
-input TagInput {
-  id: ID!
-}
