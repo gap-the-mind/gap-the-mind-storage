@@ -1,6 +1,9 @@
 package repo
 
 import (
+	"path/filepath"
+
+	"github.com/blevesearch/bleve"
 	"github.com/go-git/go-git/v5"
 )
 
@@ -33,5 +36,19 @@ func Open(path string) (Storage, error) {
 		path,
 	)
 
-	return Storage{repo: repo}, nil
+	var index bleve.Index
+	indexPath := filepath.Join(path, ".index")
+
+	logger.Infow("Open index", "path", indexPath)
+
+	if err != nil {
+		logger.Info("Create new index")
+
+		mapping := bleve.NewIndexMapping()
+		index, err = bleve.New(indexPath, mapping)
+	}
+
+	storage := Storage{repo: repo, indexer: &index}
+
+	return storage, err
 }

@@ -44,6 +44,7 @@ func (s *Storage) commit(path string, msg string) error {
 	return nil
 }
 
+// Delete deletes an entity
 func (s *Storage) Delete(target EntityRef) error {
 	fs, err := s.fs()
 
@@ -62,6 +63,7 @@ func (s *Storage) Delete(target EntityRef) error {
 	return s.commit(path, fmt.Sprintf("Delete note %s at %s", target.Id(), path))
 }
 
+// Create creates and entity
 func (s *Storage) Create(content EntityRef) error {
 	content.SetId(uuid.New().String())
 
@@ -93,15 +95,7 @@ func (s *Storage) Create(content EntityRef) error {
 	return s.commit(path, fmt.Sprintf("Create note %s at %s", content.Id(), path))
 }
 
-func (s *Storage) Get(target EntityRef) error {
-	fs, err := s.fs()
-
-	if err != nil {
-		return fmt.Errorf("Filesystem error: %w", err)
-	}
-
-	path := path(fs, target)
-
+func readEntity(fs billy.Filesystem, path string, target EntityRef) error {
 	file, err := fs.Open(path)
 
 	if err != nil {
@@ -121,9 +115,23 @@ func (s *Storage) Get(target EntityRef) error {
 	}
 
 	return nil
+}
+
+// Get retreive an entity
+func (s *Storage) Get(target EntityRef) error {
+	fs, err := s.fs()
+
+	if err != nil {
+		return fmt.Errorf("Filesystem error: %w", err)
+	}
+
+	path := path(fs, target)
+
+	return readEntity(fs, path, target)
 
 }
 
+// Update update an entity
 func (s *Storage) Update(content EntityRef) error {
 	logger.Debugw("Update",
 		"type", content.Nature(),
@@ -166,6 +174,7 @@ func (s *Storage) Update(content EntityRef) error {
 
 }
 
+// List lists all entities of the given type
 func (s *Storage) List(typ string) []string {
 	tree, err := s.repo.Worktree()
 	fs := tree.Filesystem
