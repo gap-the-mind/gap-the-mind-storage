@@ -3,11 +3,8 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/google/uuid"
 	"github.com/pelletier/go-toml"
 )
@@ -22,26 +19,38 @@ func (s *Storage) fs() (billy.Filesystem, error) {
 	return tree.Filesystem, nil
 }
 
-func (s *Storage) commit(path string, msg string) error {
-	tree, err := s.repo.Worktree()
-	_, err = tree.Add(path)
+func readEntity(file billy.File, target EntityRef) error {
+	b, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return fmt.Errorf("Failed to read file %s: %w", path, err)
+	}
+
+	err = toml.Unmarshal(b, target)
+
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), path, err)
+	}
+
+	return nil
+}
+
+func writeEntity(file billy.File, content EntityRef) error {
+	unit := storageUnit{
+		ID:      content.Id(),
+		Nature:  content.Nature(),
+		Content: content,
+	}
+
+	b, err := toml.Marshal(unit)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = tree.Commit(msg, &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		}})
+	_, err = file.Write(b)
 
-	if err != nil {
-		return fmt.Errorf("Failed to commit: %w", err)
-	}
-
-	return nil
+	return err
 }
 
 // Delete deletes an entity
@@ -63,8 +72,8 @@ func (s *Storage) Delete(target EntityRef) error {
 	return s.commit(path, fmt.Sprintf("Delete note %s at %s", target.Id(), path))
 }
 
-// Create creates and entity
-func (s *Storage) Create(content EntityRef) error {
+// Save creates and entity
+func (s *Storage) Save(content EntityRef) error {
 	content.SetId(uuid.New().String())
 
 	fs, err := s.fs()
@@ -73,48 +82,12 @@ func (s *Storage) Create(content EntityRef) error {
 		return err
 	}
 
-	b, err := toml.Marshal(content)
-
-	if err != nil {
-		return err
-	}
-
 	path := path(fs, content)
 	file, err := fs.Create(path)
 
-	if err != nil {
-		return err
-	}
+	err = writeEntity(file, content)
 
-	_, err = file.Write(b)
-
-	if err != nil {
-		return err
-	}
-
-	return s.commit(path, fmt.Sprintf("Create note %s at %s", content.Id(), path))
-}
-
-func readEntity(fs billy.Filesystem, path string, target EntityRef) error {
-	file, err := fs.Open(path)
-
-	if err != nil {
-		return fmt.Errorf("Failed to open file %s: %w", path, err)
-	}
-
-	b, err := ioutil.ReadAll(file)
-
-	if err != nil {
-		return fmt.Errorf("Failed to read file %s: %w", path, err)
-	}
-
-	err = toml.Unmarshal(b, target)
-
-	if err != nil {
-		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), path, err)
-	}
-
-	return nil
+	return err
 }
 
 // Get retreive an entity
@@ -126,51 +99,11 @@ func (s *Storage) Get(target EntityRef) error {
 	}
 
 	path := path(fs, target)
+	file, err := fs.Open(path)
 
-	return readEntity(fs, path, target)
+	err = readEntity(file, target)
 
-}
-
-// Update update an entity
-func (s *Storage) Update(content EntityRef) error {
-	logger.Debugw("Update",
-		"type", content.Nature(),
-		"id", content.Id(),
-	)
-
-	fs, err := s.fs()
-
-	if err != nil {
-		return fmt.Errorf("Filesystem error: %w", err)
-	}
-
-	b, err := toml.Marshal(content)
-
-	if err != nil {
-		return fmt.Errorf("Failed to marshal: %w", err)
-	}
-
-	path := path(fs, content)
-
-	logger.Debugw("Saving",
-		"type", content.Nature(),
-		"id", content.Id(),
-		"path", path,
-	)
-
-	file, err := fs.Create(path)
-
-	if err != nil {
-		return fmt.Errorf("Failed to open file %s: %w", path, err)
-	}
-
-	_, err = file.Write(b)
-
-	if err != nil {
-		return fmt.Errorf("Failed to write file %s: %w", path, err)
-	}
-
-	return s.commit(path, fmt.Sprintf("Update note %s at %s", content.Id(), path))
+	return err
 
 }
 

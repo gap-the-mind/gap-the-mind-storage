@@ -8,6 +8,13 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
+// StorageUnit wraps stored content
+type storageUnit struct {
+	ID      string
+	Nature  string
+	Content EntityRef
+}
+
 // EntityRef is base for all storable objects
 type EntityRef interface {
 	Id() string
@@ -27,4 +34,5 @@ type Storage struct {
 	repo    *git.Repository
 	layout  Layout
 	indexer *bleve.Index
+	commits chan string
 }

@@ -1,13 +1,41 @@
 package repo
 
 import (
+	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/blevesearch/bleve"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// Storage provide CRUD ops
+func (s *Storage) commit(commits <-chan string, tree *git.Worktree) error {
+
+	var msg string
+
+	for c := range commits {
+		msg
+	}
+	_, err := tree.Add(".")
+
+	if err != nil {
+		return err
+	}
+
+	_, err = tree.Commit(msg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "John Doe",
+			Email: "john@doe.org",
+			When:  time.Now(),
+		}})
+
+	if err != nil {
+		return fmt.Errorf("Failed to commit: %w", err)
+	}
+
+	return nil
+}
 
 // Open a new repo
 func Open(path string) (Storage, error) {
@@ -48,7 +76,9 @@ func Open(path string) (Storage, error) {
 		index, err = bleve.New(indexPath, mapping)
 	}
 
-	storage := Storage{repo: repo, indexer: &index}
+	commitChan := make(chan string, 100)
+
+	storage := Storage{repo: repo, indexer: &index, commits: commitChan}
 
 	return storage, err
 }
