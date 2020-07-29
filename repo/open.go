@@ -7,31 +7,37 @@ import (
 
 	"github.com/blevesearch/bleve"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-func (s *Storage) commit(commits <-chan string, tree *git.Worktree) error {
+func commit(commits <-chan string, tree *git.Worktree, debounce int64) error {
 
 	var msg string
+	var start int64
 
 	for c := range commits {
-		msg
-	}
-	_, err := tree.Add(".")
+		msg = c
+		start = time.Now().Unix()
 
-	if err != nil {
-		return err
-	}
+		for time.Now().Unix()-start < debounce {
+			select {
+			case c = <-commits:
+				msg += "\n" + c
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
 
-	_, err = tree.Commit(msg, &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  "John Doe",
-			Email: "john@doe.org",
-			When:  time.Now(),
-		}})
+		_, err := tree.Add(".")
 
-	if err != nil {
-		return fmt.Errorf("Failed to commit: %w", err)
+		if err != nil {
+			return err
+		}
+
+		_, err = tree.Commit(msg, &git.CommitOptions{})
+
+		if err != nil {
+			return fmt.Errorf("Failed to commit: %w", err)
+		}
 	}
 
 	return nil

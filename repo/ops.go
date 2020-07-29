@@ -23,13 +23,13 @@ func readEntity(file billy.File, target EntityRef) error {
 	b, err := ioutil.ReadAll(file)
 
 	if err != nil {
-		return fmt.Errorf("Failed to read file %s: %w", path, err)
+		return fmt.Errorf("Failed to read file %s: %w", file.Name(), err)
 	}
 
 	err = toml.Unmarshal(b, target)
 
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), path, err)
+		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), file.Name(), err)
 	}
 
 	return nil
@@ -53,6 +53,10 @@ func writeEntity(file billy.File, content EntityRef) error {
 	return err
 }
 
+func (s *Storage) commit(message string) {
+	s.commits <- message
+}
+
 // Delete deletes an entity
 func (s *Storage) Delete(target EntityRef) error {
 	fs, err := s.fs()
@@ -69,7 +73,9 @@ func (s *Storage) Delete(target EntityRef) error {
 		return err
 	}
 
-	return s.commit(path, fmt.Sprintf("Delete note %s at %s", target.Id(), path))
+	s.commit(fmt.Sprintf("Delete note %s at %s", target.Id(), path))
+
+	return nil
 }
 
 // Save creates and entity
@@ -87,7 +93,13 @@ func (s *Storage) Save(content EntityRef) error {
 
 	err = writeEntity(file, content)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	s.commit(fmt.Sprintf("Save note %s at %s", content.Id(), path))
+
+	return nil
 }
 
 // Get retreive an entity
