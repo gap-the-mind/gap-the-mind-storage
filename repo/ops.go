@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/google/uuid"
-	"github.com/pelletier/go-toml"
 )
 
 func (s *Storage) fs() (billy.Filesystem, error) {
@@ -19,14 +18,14 @@ func (s *Storage) fs() (billy.Filesystem, error) {
 	return tree.Filesystem, nil
 }
 
-func readEntity(file billy.File, target EntityRef) error {
+func (s *Storage) readEntity(file billy.File, target EntityRef) error {
 	b, err := ioutil.ReadAll(file)
 
 	if err != nil {
 		return fmt.Errorf("Failed to read file %s: %w", file.Name(), err)
 	}
 
-	err = toml.Unmarshal(b, target)
+	err = s.Unmarshal(b, target)
 
 	if err != nil {
 		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), file.Name(), err)
@@ -35,14 +34,14 @@ func readEntity(file billy.File, target EntityRef) error {
 	return nil
 }
 
-func writeEntity(file billy.File, content EntityRef) error {
+func (s *Storage) writeEntity(file billy.File, content EntityRef) error {
 	unit := storageUnit{
 		ID:      content.Id(),
 		Nature:  content.Nature(),
 		Content: content,
 	}
 
-	b, err := toml.Marshal(unit)
+	b, err := s.Marshal(unit)
 
 	if err != nil {
 		return err
@@ -91,7 +90,7 @@ func (s *Storage) Save(content EntityRef) error {
 	path := path(fs, content)
 	file, err := fs.Create(path)
 
-	err = writeEntity(file, content)
+	err = s.writeEntity(file, content)
 
 	if err != nil {
 		return err
@@ -113,7 +112,7 @@ func (s *Storage) Get(target EntityRef) error {
 	path := path(fs, target)
 	file, err := fs.Open(path)
 
-	err = readEntity(file, target)
+	err = s.readEntity(file, target)
 
 	return err
 

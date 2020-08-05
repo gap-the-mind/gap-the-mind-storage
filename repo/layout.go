@@ -2,10 +2,20 @@ package repo
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
 )
+
+// Layout is the layout
+type Layout interface {
+	Path(fs billy.Filesystem, entity EntityRef)
+	Id(file os.FileInfo)
+
+	Marshal(v interface{}) ([]byte, error)
+	Unmarshal(data []byte, v interface{}) error
+}
 
 var layout = map[string]string{
 	"note":      "notes",

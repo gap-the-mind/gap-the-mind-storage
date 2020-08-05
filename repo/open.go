@@ -1,50 +1,43 @@
 package repo
 
 import (
-	"fmt"
-	"path/filepath"
-	"time"
-
 	"github.com/blevesearch/bleve"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/storage/memory"
 )
 
-func commit(commits <-chan string, tree *git.Worktree, debounce int64) error {
+// OpenMemory open or create a repo in memory
+func OpenMemory() (Storage, error) {
+	storage := memory.NewStorage()
+	repo, err := git.Open(storage, nil)
 
-	var msg string
-	var start int64
+	logger.Infow("No repo found - initialization",
+		"path",
+		path,
+	)
 
-	for c := range commits {
-		msg = c
-		start = time.Now().Unix()
+	repo, err = git.Init(storage, nil)
 
-		for time.Now().Unix()-start < debounce {
-			select {
-			case c = <-commits:
-				msg += "\n" + c
-			default:
-				time.Sleep(1 * time.Second)
-			}
-		}
+	if err != nil {
+		logger.Errorw("Failed to init repo",
+			"path",
+			path,
+		)
 
-		_, err := tree.Add(".")
-
-		if err != nil {
-			return err
-		}
-
-		_, err = tree.Commit(msg, &git.CommitOptions{})
-
-		if err != nil {
-			return fmt.Errorf("Failed to commit: %w", err)
-		}
+		return Storage{}, err
 	}
 
-	return nil
+	logger.Infow("Found repo",
+		"path",
+		path,
+	)
+
+	return createStorage(repo)
+
 }
 
-// Open a new repo
-func Open(path string) (Storage, error) {
+// OpenFilesystem open or create a repo
+func OpenFilesystem(path string) (Storage, error) {
 	defer logger.Sync()
 
 	repo, err := git.PlainOpen(path)
@@ -58,10 +51,12 @@ func Open(path string) (Storage, error) {
 		repo, err = git.PlainInit(path, false)
 
 		if err != nil {
-			logger.Fatal("Failed to init repo",
+			logger.Errorw("Failed to init repo",
 				"path",
 				path,
 			)
+
+			return Storage{}, err
 		}
 	}
 
@@ -70,8 +65,22 @@ func Open(path string) (Storage, error) {
 		path,
 	)
 
+	return createStorage(repo)
+}
+
+// Open a new repo
+func createStorage(repo *git.Repository) (Storage, error) {
+
 	var index bleve.Index
-	indexPath := filepath.Join(path, ".index")
+	tree, err := repo.Worktree()
+
+	if err != nil {
+		return Storage{}, err
+	}
+
+	fs := tree.Filesystem
+
+	indexPath := fs.Join(fs.Root(), ".index")
 
 	logger.Infow("Open index", "path", indexPath)
 
