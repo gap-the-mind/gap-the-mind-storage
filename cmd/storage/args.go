@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -11,26 +12,30 @@ import (
 var storeCmd *flag.FlagSet
 var queryCmd *flag.FlagSet
 
-var repoPath string
-var filePath string
-var inMemory bool
+var params struct {
+	repoPath string
+	filePath string
+	inMemory bool
+}
 
 func init() {
 
 	storeCmd = flag.NewFlagSet("store", flag.ExitOnError)
-	storeCmd.StringVar(&filePath, "file", "", "path to file to store")
-	storeCmd.StringVar(&repoPath, "path", "", "path to store")
-	storeCmd.BoolVar(&inMemory, "memory", true, "in memory store")
+	storeCmd.StringVar(&params.filePath, "file", "", "path to file to store")
+	storeCmd.StringVar(&params.repoPath, "path", "", "path to store")
+	storeCmd.BoolVar(&params.inMemory, "memory", false, "in memory store")
 
 	queryCmd = flag.NewFlagSet("query", flag.ExitOnError)
 }
 
 func getRepo() (repo.Storage, error) {
-	if inMemory {
+	fmt.Printf("%w\n", params)
+
+	if params.inMemory {
 		return repo.OpenMemory()
 	}
 
-	return repo.OpenFilesystem(repoPath)
+	return repo.OpenFilesystem(params.repoPath)
 }
 
 func store(args []string) {

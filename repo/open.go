@@ -2,6 +2,7 @@ package repo
 
 import (
 	"github.com/blevesearch/bleve"
+	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
@@ -9,28 +10,20 @@ import (
 // OpenMemory open or create a repo in memory
 func OpenMemory() (Storage, error) {
 	storage := memory.NewStorage()
+
 	repo, err := git.Open(storage, nil)
 
-	logger.Infow("No repo found - initialization",
-		"path",
-		path,
-	)
+	logger.Infow("No repo found - initialization in memory")
 
-	repo, err = git.Init(storage, nil)
+	repo, err = git.Init(storage, memfs.New())
 
 	if err != nil {
-		logger.Errorw("Failed to init repo",
-			"path",
-			path,
-		)
+		logger.Errorw("Failed to init in memory repo")
 
 		return Storage{}, err
 	}
 
-	logger.Infow("Found repo",
-		"path",
-		path,
-	)
+	logger.Infow("Found repo")
 
 	return createStorage(repo)
 
