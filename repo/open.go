@@ -2,10 +2,11 @@ package repo
 
 import (
 	"fmt"
+	"github.com/gap-the-mind/gap-the-mind-storage/entity"
 	"path/filepath"
 	"time"
 
-	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/v2"
 	"github.com/go-git/go-git/v5"
 )
 
@@ -44,14 +45,14 @@ func commit(commits <-chan string, tree *git.Worktree, debounce int64) error {
 }
 
 // Open a new repo
-func Open(path string) (Storage, error) {
+func Open(path string, providers []entity.Provider) (Storage, error) {
 	defer logger.Sync()
 
 	repo, err := git.PlainOpen(path)
 
 	if err != nil {
 		logger.Infow("No repo found - initialization",
-			"path",
+			"entityPath",
 			path,
 		)
 
@@ -59,32 +60,37 @@ func Open(path string) (Storage, error) {
 
 		if err != nil {
 			logger.Fatal("Failed to init repo",
-				"path",
+				"entityPath",
 				path,
 			)
 		}
 	}
 
 	logger.Infow("Found repo",
-		"path",
+		"entityPath",
 		path,
 	)
 
 	var index bleve.Index
 	indexPath := filepath.Join(path, ".index")
 
-	logger.Infow("Open index", "path", indexPath)
+	logger.Infow("Open index", "entityPath", indexPath)
+	index, err = bleve.Open(indexPath)
 
 	if err != nil {
-		logger.Info("Create new index")
-
+		logger.Infow("No index found, creating a new one", "entityPath", indexPath)
 		mapping := bleve.NewIndexMapping()
 		index, err = bleve.New(indexPath, mapping)
 	}
 
 	commitChan := make(chan string, 100)
 
-	storage := Storage{repo: repo, indexer: &index, commits: commitChan}
+	storage := Storage{
+		repo:            repo,
+		indexer:         index,
+		commits:         commitChan,
+		entityProviders: providers,
+	}
 
 	return storage, err
 }

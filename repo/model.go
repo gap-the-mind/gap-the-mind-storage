@@ -1,9 +1,10 @@
 package repo
 
 import (
+	"github.com/gap-the-mind/gap-the-mind-storage/entity"
 	"os"
 
-	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/v2"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5"
 )
@@ -12,27 +13,20 @@ import (
 type storageUnit struct {
 	ID      string
 	Nature  string
-	Content EntityRef
-}
-
-// EntityRef is base for all storable objects
-type EntityRef interface {
-	Id() string
-	SetId(string)
-
-	Nature() string
+	Content entity.Entity
 }
 
 // Layout is the layout
 type Layout interface {
-	Path(fs billy.Filesystem, entity EntityRef)
+	Path(fs billy.Filesystem, entity entity.Entity)
 	Id(file os.FileInfo)
 }
 
 // Storage is the storage
 type Storage struct {
-	repo    *git.Repository
-	layout  Layout
-	indexer *bleve.Index
-	commits chan string
+	repo            *git.Repository
+	layout          Layout
+	indexer         bleve.Index
+	commits         chan string
+	entityProviders []entity.Provider
 }

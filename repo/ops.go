@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"github.com/gap-the-mind/gap-the-mind-storage/entity"
 	"io/ioutil"
 
 	"github.com/go-git/go-billy/v5"
@@ -19,30 +20,24 @@ func (s *Storage) fs() (billy.Filesystem, error) {
 	return tree.Filesystem, nil
 }
 
-func readEntity(file billy.File, target EntityRef) error {
+func readEntity(file billy.File, target entity.Entity) error {
 	b, err := ioutil.ReadAll(file)
 
 	if err != nil {
-		return fmt.Errorf("Failed to read file %s: %w", file.Name(), err)
+		return fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 	}
 
 	err = toml.Unmarshal(b, target)
 
 	if err != nil {
-		return fmt.Errorf("Failed to unmarshal %s from %s: %w", target.Id(), file.Name(), err)
+		return fmt.Errorf("failed to unmarshal %s from %s: %w", target.Id(), file.Name(), err)
 	}
 
 	return nil
 }
 
-func writeEntity(file billy.File, content EntityRef) error {
-	unit := storageUnit{
-		ID:      content.Id(),
-		Nature:  content.Nature(),
-		Content: content,
-	}
-
-	b, err := toml.Marshal(unit)
+func writeEntity(file billy.File, content entity.Entity) error {
+	b, err := toml.Marshal(content)
 
 	if err != nil {
 		return err
@@ -58,14 +53,14 @@ func (s *Storage) commit(message string) {
 }
 
 // Delete deletes an entity
-func (s *Storage) Delete(target EntityRef) error {
+func (s *Storage) Delete(target entity.Entity) error {
 	fs, err := s.fs()
 
 	if err != nil {
 		return err
 	}
 
-	path := path(fs, target)
+	path := entityPath(fs, target)
 
 	err = fs.Remove(path)
 
@@ -79,7 +74,7 @@ func (s *Storage) Delete(target EntityRef) error {
 }
 
 // Save creates and entity
-func (s *Storage) Save(content EntityRef) error {
+func (s *Storage) Save(content entity.Entity) error {
 	content.SetId(uuid.New().String())
 
 	fs, err := s.fs()
@@ -88,7 +83,7 @@ func (s *Storage) Save(content EntityRef) error {
 		return err
 	}
 
-	path := path(fs, content)
+	path := entityPath(fs, content)
 	file, err := fs.Create(path)
 
 	err = writeEntity(file, content)
@@ -103,19 +98,66 @@ func (s *Storage) Save(content EntityRef) error {
 }
 
 // Get retreive an entity
-func (s *Storage) Get(target EntityRef) error {
+func (s *Storage) Get(target entity.Entity) error {
 	fs, err := s.fs()
 
 	if err != nil {
-		return fmt.Errorf("Filesystem error: %w", err)
+		return fmt.Errorf("filesystem error: %w", err)
 	}
 
-	path := path(fs, target)
+	path := entityPath(fs, target)
 	file, err := fs.Open(path)
 
 	err = readEntity(file, target)
 
 	return err
+
+}
+
+// Get retreive an entity
+func (s *Storage) Read(path string) (*entity.Entity, error) {
+	fs, err := s.fs()
+
+	if err != nil {
+		return nil, fmt.Errorf("filesystem error: %w", err)
+	}
+
+	file, err := fs.Open(path)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+
+	b, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
+	}
+
+	tree, err := toml.LoadBytes(b)
+
+	if err != nil {
+		return nil, fmt.Errorf("parsing error: %w", err)
+	}
+
+	id := tree.Get("Id")
+	nature := tree.Get("Nature")
+	var target entity.Entity
+
+	for _, p := range s.entityProviders {
+		target = p.Accept(id.(string), nature.(string))
+
+		if target != nil {
+			err = tree.Unmarshal(&target)
+
+			if err != nil {
+				return &target, nil
+			}
+
+		}
+	}
+
+	return nil, nil
 
 }
 

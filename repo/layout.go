@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"github.com/gap-the-mind/gap-the-mind-storage/entity"
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
@@ -20,14 +21,14 @@ func prefix(nature string) string {
 	prefix, found := layout[nature]
 
 	if !found {
-		prefix = "miscellanous"
+		prefix = "miscellaneous"
 	}
 
 	return prefix
 
 }
 
-func path(fs billy.Filesystem, entity EntityRef) string {
+func entityPath(fs billy.Filesystem, entity entity.Entity) string {
 	filename := fmt.Sprintf("%s.toml", entity.Id())
 	prefix := prefix(entity.Nature())
 	path := fs.Join(prefix, filename)
