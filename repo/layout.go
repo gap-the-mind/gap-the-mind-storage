@@ -29,7 +29,7 @@ func prefix(nature string) string {
 }
 
 func entityPath(fs billy.Filesystem, entity entity.Entity) string {
-	filename := fmt.Sprintf("%s.toml", entity.Id())
+	filename := fmt.Sprintf("%s.json", entity.Id())
 	prefix := prefix(entity.Nature())
 	path := fs.Join(prefix, filename)
 

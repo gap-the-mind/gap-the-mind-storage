@@ -28,7 +28,7 @@ func (s Storage) Reindex() error {
 
 		logger.Debugw("Reindex candidate", "file", info.Name(), "extension", ext)
 
-		if info.IsDir() || ext != ".toml" {
+		if info.IsDir() || ext != ".json" {
 			return nil
 		}
 
@@ -41,13 +41,17 @@ func (s Storage) Reindex() error {
 		logger.Infow("Reindex", "file", relPath)
 		entity, err := s.Read(relPath)
 
-		logger.Debugw("Reindex ", "entity", entity)
-
 		if err != nil {
 			return err
 		}
 
-		return s.indexer.Index((*entity).Id(), entity)
+		if entity != nil {
+			logger.Debugw("Reindex ", "entity", entity)
+			return s.indexer.Index(entity.Id(), entity)
+		}
+
+		return nil
+
 	})
 
 	return err

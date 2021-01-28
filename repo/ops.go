@@ -3,11 +3,11 @@ package repo
 import (
 	"fmt"
 	"github.com/gap-the-mind/gap-the-mind-storage/entity"
+	"github.com/mailru/easyjson"
 	"io/ioutil"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/google/uuid"
-	"github.com/pelletier/go-toml"
 )
 
 func (s *Storage) fs() (billy.Filesystem, error) {
@@ -27,7 +27,7 @@ func readEntity(file billy.File, target entity.Entity) error {
 		return fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 	}
 
-	err = toml.Unmarshal(b, target)
+	err = easyjson.Unmarshal(b, target)
 
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal %s from %s: %w", target.Id(), file.Name(), err)
@@ -37,7 +37,7 @@ func readEntity(file billy.File, target entity.Entity) error {
 }
 
 func writeEntity(file billy.File, content entity.Entity) error {
-	b, err := toml.Marshal(content)
+	b, err := easyjson.Marshal(content)
 
 	if err != nil {
 		return err
@@ -115,7 +115,7 @@ func (s *Storage) Get(target entity.Entity) error {
 }
 
 // Get retreive an entity
-func (s *Storage) Read(path string) (*entity.Entity, error) {
+func (s *Storage) Read(path string) (entity.Entity, error) {
 	fs, err := s.fs()
 
 	if err != nil {
@@ -134,27 +134,22 @@ func (s *Storage) Read(path string) (*entity.Entity, error) {
 		return nil, fmt.Errorf("failed to read file %s: %w", file.Name(), err)
 	}
 
-	tree, err := toml.LoadBytes(b)
+	e := entity.EntityPick{}
+	err = easyjson.Unmarshal(b, &e)
 
 	if err != nil {
-		return nil, fmt.Errorf("parsing error: %w", err)
+		return nil, fmt.Errorf("unmarshal error: %w", err)
 	}
 
-	id := tree.Get("Id")
-	nature := tree.Get("Nature")
-	var target entity.Entity
-
 	for _, p := range s.entityProviders {
-		target = p.Accept(id.(string), nature.(string))
+		if ok, target := p.Accept(e); ok {
+			err = easyjson.Unmarshal(b, target)
 
-		if target != nil {
-			err = tree.Unmarshal(&target)
-
-			if err != nil {
-				return &target, nil
+			if err == nil {
+				return target, nil
 			}
-
 		}
+
 	}
 
 	return nil, nil

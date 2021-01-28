@@ -30,7 +30,7 @@ func main() {
 
 	repository.Save(n)
 
-	// err = repository.Reindex()
+	err = repository.Reindex()
 
 	query := bleve.NewQueryStringQuery("Toto")
 	search := bleve.NewSearchRequestOptions(query, 10, 0, true)

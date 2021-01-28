@@ -1,3 +1,5 @@
+//go:generate easyjson
+
 package note
 
 import (
@@ -5,21 +7,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const noteNature = "note"
+
+//easyjson:json
 type Note struct {
-	id   string
-	text string
+	NoteId     string `json:"id"`
+	Text       string `json:"text"`
+	NoteNature string `json:"nature"`
 }
 
 func (n Note) Id() string {
-	return n.id
+	return n.NoteId
 }
 
 func (n Note) SetId(s string) {
-	n.id = s
+	n.NoteId = s
 }
 
 func (n Note) Nature() string {
-	return "note"
+	return noteNature
 }
 
 type NoteProvider struct {
@@ -30,15 +36,16 @@ func New(text string) *Note {
 	id, _ := uuid.NewRandom()
 
 	return &Note{
-		id:   id.String(),
-		text: text,
+		NoteId:     id.String(),
+		Text:       text,
+		NoteNature: noteNature,
 	}
 }
 
-func (provider NoteProvider) Accept(id string, nature string) entity.Entity {
-	if nature != "note" {
-		return nil
+func (provider NoteProvider) Accept(e entity.EntityPick) (bool, entity.Entity) {
+	if e.Nature() != noteNature {
+		return false, nil
 	}
 
-	return Note{id: id}
+	return true, &Note{}
 }

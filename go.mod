@@ -3,6 +3,7 @@ module github.com/gap-the-mind/gap-the-mind-storage
 go 1.15
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/blevesearch/bleve/v2 v2.0.1
@@ -14,7 +15,7 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
-	github.com/pelletier/go-toml v1.8.1
+	github.com/mailru/easyjson v0.7.6
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/ssh-agent v0.3.0 // indirect

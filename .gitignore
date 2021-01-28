@@ -5,3 +5,5 @@ storage
 *.iml
 
 .vscode
+
+*_easyjson.go
